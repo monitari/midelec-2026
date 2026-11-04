@@ -1,0 +1,638 @@
+{
+ "_note": "선거 전 현황(2026년 11월 선거 직전). 상원 2석 정당, 선거 대상 상원 의석의 현직, 주지사. 현직 출마 여부는 실제 투표용지(결과 데이터의 현직 표시)에서 가져온다.",
+ "senateSeats": {
+  "AL": [
+   "R",
+   "R"
+  ],
+  "AK": [
+   "R",
+   "R"
+  ],
+  "AZ": [
+   "D",
+   "D"
+  ],
+  "AR": [
+   "R",
+   "R"
+  ],
+  "CA": [
+   "D",
+   "D"
+  ],
+  "CO": [
+   "D",
+   "D"
+  ],
+  "CT": [
+   "D",
+   "D"
+  ],
+  "DE": [
+   "D",
+   "D"
+  ],
+  "FL": [
+   "R",
+   "R"
+  ],
+  "GA": [
+   "D",
+   "D"
+  ],
+  "HI": [
+   "D",
+   "D"
+  ],
+  "ID": [
+   "R",
+   "R"
+  ],
+  "IL": [
+   "D",
+   "D"
+  ],
+  "IN": [
+   "R",
+   "R"
+  ],
+  "IA": [
+   "R",
+   "R"
+  ],
+  "KS": [
+   "R",
+   "R"
+  ],
+  "KY": [
+   "R",
+   "R"
+  ],
+  "LA": [
+   "R",
+   "R"
+  ],
+  "ME": [
+   "R",
+   "I"
+  ],
+  "MD": [
+   "D",
+   "D"
+  ],
+  "MA": [
+   "D",
+   "D"
+  ],
+  "MI": [
+   "D",
+   "D"
+  ],
+  "MN": [
+   "D",
+   "D"
+  ],
+  "MS": [
+   "R",
+   "R"
+  ],
+  "MO": [
+   "R",
+   "R"
+  ],
+  "MT": [
+   "R",
+   "R"
+  ],
+  "NE": [
+   "R",
+   "R"
+  ],
+  "NV": [
+   "D",
+   "D"
+  ],
+  "NH": [
+   "D",
+   "D"
+  ],
+  "NJ": [
+   "D",
+   "D"
+  ],
+  "NM": [
+   "D",
+   "D"
+  ],
+  "NY": [
+   "D",
+   "D"
+  ],
+  "NC": [
+   "R",
+   "R"
+  ],
+  "ND": [
+   "R",
+   "R"
+  ],
+  "OH": [
+   "R",
+   "R"
+  ],
+  "OK": [
+   "R",
+   "R"
+  ],
+  "OR": [
+   "D",
+   "D"
+  ],
+  "PA": [
+   "D",
+   "R"
+  ],
+  "RI": [
+   "D",
+   "D"
+  ],
+  "SC": [
+   "R",
+   "R"
+  ],
+  "SD": [
+   "R",
+   "R"
+  ],
+  "TN": [
+   "R",
+   "R"
+  ],
+  "TX": [
+   "R",
+   "R"
+  ],
+  "UT": [
+   "R",
+   "R"
+  ],
+  "VT": [
+   "I",
+   "D"
+  ],
+  "VA": [
+   "D",
+   "D"
+  ],
+  "WA": [
+   "D",
+   "D"
+  ],
+  "WV": [
+   "R",
+   "R"
+  ],
+  "WI": [
+   "D",
+   "R"
+  ],
+  "WY": [
+   "R",
+   "R"
+  ]
+ },
+ "senateCaucus": {
+  "ME": "D",
+  "VT": "D"
+ },
+ "senateUp": [
+  {
+   "state": "AL",
+   "name": "Tommy Tuberville",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "AK",
+   "name": "Dan Sullivan",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "AR",
+   "name": "Tom Cotton",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "CO",
+   "name": "John Hickenlooper",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "DE",
+   "name": "Chris Coons",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "GA",
+   "name": "Jon Ossoff",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "ID",
+   "name": "Jim Risch",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "IL",
+   "name": "Dick Durbin",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "IA",
+   "name": "Joni Ernst",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "KS",
+   "name": "Roger Marshall",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "KY",
+   "name": "Mitch McConnell",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "LA",
+   "name": "Bill Cassidy",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "ME",
+   "name": "Susan Collins",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "MA",
+   "name": "Ed Markey",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "MI",
+   "name": "Gary Peters",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "MN",
+   "name": "Tina Smith",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "MS",
+   "name": "Cindy Hyde-Smith",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "MT",
+   "name": "Steve Daines",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "NE",
+   "name": "Pete Ricketts",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "NH",
+   "name": "Jeanne Shaheen",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "NJ",
+   "name": "Cory Booker",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "NM",
+   "name": "Ben Ray Luján",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "NC",
+   "name": "Thom Tillis",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "OK",
+   "name": "Markwayne Mullin",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "OR",
+   "name": "Jeff Merkley",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "RI",
+   "name": "Jack Reed",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "SC",
+   "name": "Lindsey Graham",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "SD",
+   "name": "Mike Rounds",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "TN",
+   "name": "Bill Hagerty",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "TX",
+   "name": "John Cornyn",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "VA",
+   "name": "Mark Warner",
+   "party": "D",
+   "kind": "regular"
+  },
+  {
+   "state": "WV",
+   "name": "Shelley Moore Capito",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "WY",
+   "name": "Cynthia Lummis",
+   "party": "R",
+   "kind": "regular"
+  },
+  {
+   "state": "OH",
+   "name": "Jon Husted",
+   "party": "R",
+   "kind": "special"
+  },
+  {
+   "state": "FL",
+   "name": "Ashley Moody",
+   "party": "R",
+   "kind": "special"
+  }
+ ],
+ "governors": {
+  "AL": {
+   "name": "Kay Ivey",
+   "party": "R"
+  },
+  "AK": {
+   "name": "Mike Dunleavy",
+   "party": "R"
+  },
+  "AZ": {
+   "name": "Katie Hobbs",
+   "party": "D"
+  },
+  "AR": {
+   "name": "Sarah Huckabee Sanders",
+   "party": "R"
+  },
+  "CA": {
+   "name": "Gavin Newsom",
+   "party": "D"
+  },
+  "CO": {
+   "name": "Jared Polis",
+   "party": "D"
+  },
+  "CT": {
+   "name": "Ned Lamont",
+   "party": "D"
+  },
+  "DE": {
+   "name": "Matt Meyer",
+   "party": "D"
+  },
+  "FL": {
+   "name": "Ron DeSantis",
+   "party": "R"
+  },
+  "GA": {
+   "name": "Brian Kemp",
+   "party": "R"
+  },
+  "HI": {
+   "name": "Josh Green",
+   "party": "D"
+  },
+  "ID": {
+   "name": "Brad Little",
+   "party": "R"
+  },
+  "IL": {
+   "name": "JB Pritzker",
+   "party": "D"
+  },
+  "IN": {
+   "name": "Mike Braun",
+   "party": "R"
+  },
+  "IA": {
+   "name": "Kim Reynolds",
+   "party": "R"
+  },
+  "KS": {
+   "name": "Laura Kelly",
+   "party": "D"
+  },
+  "KY": {
+   "name": "Andy Beshear",
+   "party": "D"
+  },
+  "LA": {
+   "name": "Jeff Landry",
+   "party": "R"
+  },
+  "ME": {
+   "name": "Janet Mills",
+   "party": "D"
+  },
+  "MD": {
+   "name": "Wes Moore",
+   "party": "D"
+  },
+  "MA": {
+   "name": "Maura Healey",
+   "party": "D"
+  },
+  "MI": {
+   "name": "Gretchen Whitmer",
+   "party": "D"
+  },
+  "MN": {
+   "name": "Tim Walz",
+   "party": "D"
+  },
+  "MS": {
+   "name": "Tate Reeves",
+   "party": "R"
+  },
+  "MO": {
+   "name": "Mike Kehoe",
+   "party": "R"
+  },
+  "MT": {
+   "name": "Greg Gianforte",
+   "party": "R"
+  },
+  "NE": {
+   "name": "Jim Pillen",
+   "party": "R"
+  },
+  "NV": {
+   "name": "Joe Lombardo",
+   "party": "R"
+  },
+  "NH": {
+   "name": "Kelly Ayotte",
+   "party": "R"
+  },
+  "NJ": {
+   "name": "Mikie Sherrill",
+   "party": "D"
+  },
+  "NM": {
+   "name": "Michelle Lujan Grisham",
+   "party": "D"
+  },
+  "NY": {
+   "name": "Kathy Hochul",
+   "party": "D"
+  },
+  "NC": {
+   "name": "Josh Stein",
+   "party": "D"
+  },
+  "ND": {
+   "name": "Kelly Armstrong",
+   "party": "R"
+  },
+  "OH": {
+   "name": "Mike DeWine",
+   "party": "R"
+  },
+  "OK": {
+   "name": "Kevin Stitt",
+   "party": "R"
+  },
+  "OR": {
+   "name": "Tina Kotek",
+   "party": "D"
+  },
+  "PA": {
+   "name": "Josh Shapiro",
+   "party": "D"
+  },
+  "RI": {
+   "name": "Dan McKee",
+   "party": "D"
+  },
+  "SC": {
+   "name": "Henry McMaster",
+   "party": "R"
+  },
+  "SD": {
+   "name": "Larry Rhoden",
+   "party": "R"
+  },
+  "TN": {
+   "name": "Bill Lee",
+   "party": "R"
+  },
+  "TX": {
+   "name": "Greg Abbott",
+   "party": "R"
+  },
+  "UT": {
+   "name": "Spencer Cox",
+   "party": "R"
+  },
+  "VT": {
+   "name": "Phil Scott",
+   "party": "R"
+  },
+  "VA": {
+   "name": "Abigail Spanberger",
+   "party": "D"
+  },
+  "WA": {
+   "name": "Bob Ferguson",
+   "party": "D"
+  },
+  "WV": {
+   "name": "Patrick Morrisey",
+   "party": "R"
+  },
+  "WI": {
+   "name": "Tony Evers",
+   "party": "D"
+  },
+  "WY": {
+   "name": "Mark Gordon",
+   "party": "R"
+  }
+ },
+ "vacantLastParty": {
+  "TX-23": "R",
+  "FL-20": "D"
+ },
+ "redistrictedStates": [
+  "AL",
+  "CA",
+  "FL",
+  "LA",
+  "NC",
+  "OH",
+  "TN",
+  "TX",
+  "UT"
+ ]
+}
