@@ -26,7 +26,7 @@ export function Flips({ races, onSelect, selectedId }: { races: Race[]; onSelect
             <span className="flip-code">{raceCode(r)}</span>
             <b className="flip-title">{raceTitle(r)}</b>
             <span className="flip-winner">
-              <Avatar name={r.result.winnerName ?? ''} party={to} size={22} />
+              <Avatar name={r.result.winnerName ?? ''} party={to} size={26} photo={r.result.candidates.find((c) => c.name === r.result.winnerName)?.photo} />
               {r.result.winnerName}
             </span>
             <span className="flip-margin">+{marginPts(r).toFixed(1)}%p</span>

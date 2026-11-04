@@ -5,3 +5,4 @@ dist
 
 # NYT 결과 데이터에서 만든 파일 — 재배포 허락을 받지 않았으므로 저장소에 넣지 않는다 (npm run fetch:data 로 생성)
 public/data/election-2026.json
+public/data/counties-2026.json

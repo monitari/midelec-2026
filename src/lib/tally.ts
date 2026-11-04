@@ -140,7 +140,7 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
         { key: 'holdD', label: `민주 ${holdLabel}`, value: hold.D, fill: { color: partyLight('D') } },
         { key: 'upD', label: '민주 · 이번 선거 대상', value: up.D, fill: { color: PALETTE.D } },
         { key: 'I', label: '무소속', value: i, fill: { color: PALETTE.I } },
-        { key: 'vacant', label: '공석', value: vacant, fill: { color: '#d1d6db' } },
+        { key: 'vacant', label: '공석', value: vacant, fill: { color: PALETTE.muted } },
         { key: 'upR', label: '공화 · 이번 선거 대상', value: up.R, fill: { color: PALETTE.R } },
         { key: 'holdR', label: `공화 ${holdLabel}`, value: hold.R, fill: { color: partyLight('R') } },
       ],

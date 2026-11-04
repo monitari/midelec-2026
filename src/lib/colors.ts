@@ -4,19 +4,24 @@ export const PALETTE = {
   D: '#3182f6',
   Dstrong: '#1b64da',
   Dmid: '#90c2ff',
-  Dlight: '#c9e2ff',
+  Dlight: 'var(--p-dlight)',
   R: '#f04452',
   Rstrong: '#d22030',
   Rmid: '#ff9ea6',
-  Rlight: '#ffd4d6',
+  Rlight: 'var(--p-rlight)',
   I: '#8b6cef',
-  Ilight: '#e0d9fb',
+  Ilight: 'var(--p-ilight)',
   O: '#8b95a1',
   toss: '#ffc342',
-  pending: '#b0b8c1',
-  none: '#f2f4f6',
-  noneMark: '#d1d6db',
-  noForecast: '#e5e8eb',
+  // 아래는 테마(밝게/어둡게)에 따라 바뀌는 지도 중립색
+  pending: 'var(--m-pending)',
+  none: 'var(--m-none)',
+  noneMark: 'var(--m-none-mark)',
+  noForecast: 'var(--m-nofc)',
+  noForecastMark: 'var(--m-nofc-mark)',
+  neutral: 'var(--m-neutral)',
+  muted: 'var(--m-muted)',
+  mutedMark: 'var(--m-muted-mark)',
   ink: '#191f28',
   ink2: '#4e5968',
 };
@@ -33,7 +38,7 @@ export const RATING_COLOR: Record<Rating, string> = {
 
 export const partyColor = (p: Party) => PALETTE[p];
 export const partyLight = (p: Party) =>
-  p === 'D' ? PALETTE.Dlight : p === 'R' ? PALETTE.Rlight : p === 'I' ? PALETTE.Ilight : '#e5e8eb';
+  p === 'D' ? PALETTE.Dlight : p === 'R' ? PALETTE.Rlight : p === 'I' ? PALETTE.Ilight : PALETTE.neutral;
 
 export const PARTY_NAME: Record<Party, string> = { D: '민주당', R: '공화당', I: '무소속', O: '기타' };
 export const PARTY_SHORT: Record<Party, string> = { D: '민주', R: '공화', I: '무소속', O: '기타' };
@@ -48,7 +53,8 @@ export interface Fill {
   edge?: string;
 }
 
+const idPart = (c: string) => c.replace(/[^a-z0-9]/gi, '');
 export const fillKey = (f: Fill) =>
-  f.pattern ? `p-${f.pattern}-${f.color.slice(1)}-${(f.mark ?? 'fff').replace('#', '')}` : '';
+  f.pattern ? `p-${f.pattern}-${idPart(f.color)}-${idPart(f.mark ?? 'fff')}` : '';
 
 export const fillRef = (f: Fill) => (f.pattern ? `url(#${fillKey(f)})` : f.color);

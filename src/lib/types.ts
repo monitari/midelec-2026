@@ -16,6 +16,8 @@ export interface Candidate {
   partyCode: string;
   votes: number;
   incumbent?: boolean;
+  /** 현직 연방 의원 공식 사진 (퍼블릭 도메인). 없으면 이니셜 */
+  photo?: string;
 }
 
 export interface RaceResult {
@@ -29,8 +31,9 @@ export interface RaceResult {
   winnerName?: string;
   calledAt?: string;
   calledBy?: string;
-  /** 결선 진출자 */
+  /** 결선 진출자와 진출 발표 시각 */
   runoff?: string[];
+  runoffAt?: string;
   uncontested?: boolean;
   rankedChoice?: boolean;
   updatedAt: string;
@@ -108,6 +111,7 @@ export interface ElectionData {
     forecastSource: { name: string; url: string; note: string };
     boundary: { name: string; version: string; url: string; note: string };
     rosterSource: { name: string; url: string };
+    photoSource?: { name: string; url: string };
   };
   forecastSources: ForecastSource[];
   races: Race[];
@@ -127,3 +131,6 @@ export type Selection =
   | { type: 'race'; id: string }
   | { type: 'state'; state: string }
   | null;
+
+/** 카운티별 결과: raceId → 카운티 FIPS(5자리) → 예상 개표율, 총 득표, 상위 두 후보 [정당, 득표] */
+export type CountyResults = Record<string, Record<string, { e: number | null; t: number; c: [Party, number][] }>>;

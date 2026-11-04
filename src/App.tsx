@@ -15,7 +15,9 @@ import { Filters, Legend } from './components/Legend';
 import { EmptyDetail, RaceDetail, StateDetail } from './components/DetailPanel';
 import { KeyRaces, RaceTable, RecentCalls } from './components/RaceLists';
 import { PatternDefs, Segmented, Select, Toggle } from './components/ui';
-import { Overview } from './components/Overview';
+import { ChamberSwitch, Logo, Story } from './components/Overview';
+import { SearchBox } from './components/SearchBox';
+import { StatusBadge, ThemeToggle } from './components/Chrome';
 import { CallTimeline } from './components/CallTimeline';
 import { Flips } from './components/Flips';
 import { timeline } from './lib/story';
@@ -38,12 +40,13 @@ function readHash(data: ElectionData) {
   const mode = pick(p.get('m'), MODES.map((m) => m.id), 'result');
   const sel = p.get('sel');
   let selection: Selection = null;
+  const selRace = sel ? data.races.find((r) => r.id === sel) : undefined;
   if (sel?.startsWith('state:')) selection = { type: 'state', state: sel.slice(6) };
-  else if (sel && data.races.some((r) => r.id === sel)) selection = { type: 'race', id: sel };
+  else if (selRace) selection = { type: 'race', id: selRace.id };
   return {
-    chamber: pick(p.get('c'), ['senate', 'house', 'governor'] as const, 'house'),
+    chamber: selRace?.chamber ?? pick(p.get('c'), ['senate', 'house', 'governor'] as const, 'house'),
     mode,
-    unit: pick(p.get('u'), ['state', 'district'] as const, 'district'),
+    unit: selRace?.chamber === 'house' ? 'district' as const : pick(p.get('u'), ['state', 'district'] as const, 'district'),
     basis: BASES[mode].some((b) => b.id === p.get('b')) ? (p.get('b') as Basis) : undefined,
     source: pick(p.get('s'), data.forecastSources.map((s) => s.id), data.forecastSources[0].id),
     selection,
@@ -62,6 +65,8 @@ function useMediaQuery(q: string) {
 }
 
 const REFRESH_MS = 60_000;
+/** 새로 발표된 결과의 NEW 표시를 유지하는 시간 */
+const FRESH_MS = 5 * 60_000;
 
 
 const decidedStatus = (r: Race) => r.result.status === 'called' || r.result.status === 'certified';
@@ -73,6 +78,11 @@ export default function App() {
   const [fresh, setFresh] = useState<Set<string>>(() => new Set());
   const [toast, setToast] = useState<{ id: number; text: string; tone?: 'warn' } | null>(null);
   const prevRef = useRef<ElectionData | null>(null);
+  useEffect(() => {
+    if (!fresh.size) return;
+    const t = window.setTimeout(() => setFresh(new Set()), FRESH_MS);
+    return () => window.clearTimeout(t);
+  }, [fresh]);
 
   useEffect(() => {
     let alive = true;
@@ -287,6 +297,18 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
     );
   }, [chamber, unit, racesByState, racesOfRegion, categoryOf]);
 
+  // 검색: 다른 선거 종류면 바꾸고, 하원은 선거구 지도로 열어 그곳으로 이동
+  const pickRace = (r: Race) => {
+    if (r.chamber !== chamber) {
+      setChamber(r.chamber);
+      setFocus(null);
+    }
+    if (r.chamber === 'house') setHouseUnit('district');
+    setSelection({ type: 'race', id: r.id });
+    focusOn(r.chamber === 'house' ? districtKey(r) : r.state);
+    mapCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // 선거 종류·모드가 바뀌면 범례 강조와 선택을 정리
   const changeChamber = (c: Chamber) => {
     setChamber(c);
@@ -338,20 +360,24 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
       <PatternDefs fills={allFills} />
       <header className="topbar">
         <div className="topbar-inner">
-          <div>
-            <h1>2026 미국 중간선거</h1>
-            <p className="topbar-sub">{fmtKst(data.meta.generatedAt)} 업데이트</p>
+          <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setSelection(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <Logo />
+            <span>
+              <h1>2026 미국 중간선거</h1>
+              <small>{fmtKst(data.meta.generatedAt)} 업데이트</small>
+            </span>
+          </a>
+          <ChamberSwitch data={data} value={chamber} onChange={changeChamber} source={source} />
+          <div className="topbar-tools">
+            <SearchBox races={data.races} onPick={pickRace} />
+            <StatusBadge meta={data.meta} />
+            <ThemeToggle />
           </div>
-          {data.meta.isSample ? (
-            <span className="sample-badge">샘플 데이터</span>
-          ) : (
-            <span className="live-badge" title="공식 인증 전 개표 결과"><i aria-hidden />개표 중</span>
-          )}
         </div>
       </header>
 
       <main className="wrap">
-        <Overview data={data} value={chamber} onChange={changeChamber} source={source} />
+        {isMobile && <Story data={data} />}
 
         <div className="toolbar" ref={mapCardRef}>
           <Segmented options={MODES} value={mode} onChange={changeMode} ariaLabel="보는 정보" />
@@ -416,6 +442,7 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
           </section>
 
           <aside className="side">
+            {!isMobile && !selection && <div className="side-card story-card"><Story data={data} /></div>}
             <div className="side-card">
               <SeatSummary s={summary} chamberLabel={CHAMBER_LABEL[chamber]} compact={!isMobile && !!selection} />
             </div>

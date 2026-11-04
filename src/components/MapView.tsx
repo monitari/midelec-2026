@@ -5,7 +5,7 @@ import { zoom, zoomIdentity, type ZoomBehavior } from 'd3-zoom';
 import { geoPath } from 'd3-geo';
 import type { Unit } from '../lib/types';
 import type { Category } from '../lib/classify';
-import { fillRef, type Fill } from '../lib/colors';
+import { PALETTE, fillRef, type Fill } from '../lib/colors';
 import { MAP_H, MAP_W, METROS, buildMetro, mainProjection, metroFrame, type GeoData, type MetroDef, type Region } from '../lib/geo';
 import { Segmented, prefersReducedMotion } from './ui';
 
@@ -36,7 +36,7 @@ interface Props {
 const ms = (n: number) => (prefersReducedMotion() ? 0 : n);
 const boundsPath = geoPath(mainProjection);
 
-const NEUTRAL = '#e5e8eb';
+const NEUTRAL = PALETTE.neutral;
 /** 작은 동부 주는 바깥에 의석 막대를 둔다 */
 const CALLOUTS = ['VT', 'NH', 'MA', 'RI', 'CT', 'NJ', 'DE', 'MD'];
 const COLLAPSE_PX = 230;
@@ -70,7 +70,7 @@ const RegionLayer = memo(function RegionLayer({
             key={r.key}
             data-key={r.key}
             d={r.d}
-            fill={c ? fillRef(c.fill) : NEUTRAL}
+            style={{ fill: c ? fillRef(c.fill) : NEUTRAL }}
             className={dimmed(r.key) ? 'region dim' : 'region'}
           />
         );
@@ -314,7 +314,7 @@ function StateGlyphs({ geo, glyphs, dimmed, k }: { geo: GeoData; glyphs: Record<
                 <rect className="glyph-bg" x={-1.5} y={-1.5} width={W + 3} height={H + 3} rx={3} />
                 {g.segments.map((s) => {
                   const w = (s.value / total) * W;
-                  const el = s.value ? <rect key={s.key} x={x} y={0} width={w} height={H} fill={fillRef(s.fill)} /> : null;
+                  const el = s.value ? <rect key={s.key} x={x} y={0} width={w} height={H} style={{ fill: fillRef(s.fill) }} /> : null;
                   x += w;
                   return el;
                 })}
@@ -363,7 +363,7 @@ const MetroInset = memo(function MetroInset({
         {layer.shapes.map((s) => {
           const c = categoryOf(s.key);
           return (
-            <path key={s.key} data-key={s.key} d={s.d} fill={c ? fillRef(c.fill) : NEUTRAL}
+            <path key={s.key} data-key={s.key} d={s.d} style={{ fill: c ? fillRef(c.fill) : NEUTRAL }}
               className={dimmed(s.key) ? 'region dim' : 'region'} />
           );
         })}

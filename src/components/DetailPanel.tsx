@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Chamber, ElectionData, Mode, Race } from '../lib/types';
 import {
-  CHAMBER_LABEL, STATUS_LABEL, currentForecast, frozenForecast, isDecided, leaderParty, marginPts, outcome,
+  CHAMBER_LABEL, STATUS_LABEL, currentForecast, swingOf, frozenForecast, isDecided, leaderParty, marginPts, outcome,
   outcomeText, previousForecast, priorParty, raceCode, raceTitle, verdict, voteShares,
 } from '../lib/classify';
 import { PALETTE, PARTY_NAME, PARTY_SHORT, RATING_COLOR, partyColor } from '../lib/colors';
@@ -9,6 +9,7 @@ import { RATING_LABEL } from '../lib/ratings';
 import { fmtDay, fmtEt, fmtKst, fmtNum, fmtPct } from '../lib/format';
 import { stateName } from '../lib/states';
 import { Avatar, PartyDot } from './ui';
+import { CountyMap } from './CountyMap';
 
 interface Common {
   data: ElectionData;
@@ -20,11 +21,14 @@ interface Common {
 // ── 경주 상세 ─────────────────────────────────────────────
 
 export function RaceDetail({ race, ...c }: Common & { race: Race }) {
+  const counties = race.chamber !== 'house' && (
+    <Section key="cm" title="카운티별 결과"><CountyMap race={race} /></Section>
+  );
   const sections: Record<Mode, ReactNode[]> = {
-    result: [<Result key="r" race={race} />, <Forecast key="f" race={race} {...c} />, <Baseline key="b" race={race} {...c} />],
+    result: [<Result key="r" race={race} />, counties, <Forecast key="f" race={race} {...c} />, <Baseline key="b" race={race} {...c} />],
     forecast: [<Forecast key="f" race={race} {...c} />, <Baseline key="b" race={race} {...c} />, <Result key="r" race={race} />],
     baseline: [<Baseline key="b" race={race} {...c} />, <Forecast key="f" race={race} {...c} />, <Result key="r" race={race} />],
-    compare: [<Compare key="c" race={race} {...c} />, <Result key="r" race={race} />, <Forecast key="f" race={race} {...c} />, <Baseline key="b" race={race} {...c} />],
+    compare: [<Compare key="c" race={race} {...c} />, <Result key="r" race={race} />, counties, <Forecast key="f" race={race} {...c} />, <Baseline key="b" race={race} {...c} />],
   };
   return (
     <div className="detail">
@@ -100,6 +104,7 @@ function Result({ race }: { race: Race }) {
           <>
             <strong>결선 투표 예정</strong>
             <span>과반 득표자가 없어 {res.runoff?.length ? res.runoff.join(' · ') : '상위 후보'}가 결선에서 다시 맞붙어요.</span>
+            {res.runoffAt && <span>결선 진출 발표 {fmtKst(res.runoffAt)} · 결선 일정은 주 선거당국 발표 기준</span>}
           </>
         ) : decided ? (
           <>
@@ -121,7 +126,7 @@ function Result({ race }: { race: Race }) {
         {shares.map((c, i) => (
           <li key={c.name + i} className={decided && i === 0 ? 'win' : ''}>
             <div className="cand-row">
-              <Avatar name={c.name} party={c.party} size={30} />
+              <Avatar name={c.name} party={c.party} size={34} photo={c.photo} />
               <span className="cand-name">
                 {c.name}
                 {c.incumbent && <em>현직</em>}
@@ -130,7 +135,7 @@ function Result({ race }: { race: Race }) {
               <span className="cand-pct">{fmtPct(c.pct)}</span>
             </div>
             <div className="cand-bar">
-              <i style={{ width: `${c.pct}%`, background: c.party === 'O' ? '#b0b8c1' : partyColor(c.party), opacity: decided || i > 0 ? 1 : 0.55 }} />
+              <i style={{ width: `${c.pct}%`, background: c.party === 'O' ? PALETTE.pending : partyColor(c.party), opacity: decided || i > 0 ? 1 : 0.55 }} />
             </div>
             <div className="cand-votes">{fmtNum(c.votes)}표 · {c.party === 'O' ? c.partyCode : PARTY_SHORT[c.party]}</div>
           </li>
@@ -138,6 +143,7 @@ function Result({ race }: { race: Race }) {
       </ul>
       <p className="dnote">
         {res.uncontested ? '무투표' : <>격차 {marginPts(race).toFixed(1)}%p ({fmtNum(gap)}표)</>}
+        {swingOf(race) != null && <> · 2024 대선 대비 {swingOf(race)! >= 0 ? '민주' : '공화'} 쪽 {Math.abs(swingOf(race)!).toFixed(1)}%p</>}
         {res.calledAt && <> · 승자 발표 {fmtKst(res.calledAt)}</>}
       </p>
     </Section>

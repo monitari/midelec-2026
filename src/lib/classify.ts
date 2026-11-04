@@ -21,6 +21,20 @@ export function marginPts(r: Race) {
   return a && b ? a.pct - b.pct : 0;
 }
 
+/**
+ * 2024 대선 대비 이동 폭(%p, + = 민주 쪽): (이번 민주 − 공화 득표율차) − (같은 경계의 2024 대선 득표율차).
+ * 무투표, 양당 후보가 다 없는 선거, 개표가 덜 된 선거(승자 미발표이면서 90% 미만)는 비교하지 않는다.
+ */
+export function swingOf(r: Race): number | null {
+  if (r.pres2024 == null || r.result.uncontested) return null;
+  if (!isDecided(r) && (r.result.expectedPct ?? 0) < 90) return null;
+  const shares = voteShares(r);
+  const d = shares.find((c) => c.party === 'D');
+  const rep = shares.find((c) => c.party === 'R');
+  if (!d?.votes || !rep?.votes) return null;
+  return d.pct - rep.pct - r.pres2024;
+}
+
 /** 정당 교체 판정 기준이 되는 기존 보유 정당. 경계가 바뀐 선거구는 null (같은 번호의 이전 선거구와 비교하지 않는다) */
 export const priorParty = (r: Race): Party | null => (r.boundaryChanged ? null : r.heldBy);
 
@@ -82,7 +96,7 @@ export function verdict(r: Race, src: string, freezeAt: string): Verdict {
 // ── 지도 분류 ─────────────────────────────────────────────
 
 export type Basis =
-  | 'party' | 'margin'
+  | 'party' | 'margin' | 'swing'
   | 'rating'
   | 'held' | 'incumbency'
   | 'delta';
@@ -91,6 +105,7 @@ export const BASES: Record<Mode, { id: Basis; label: string }[]> = {
   result: [
     { id: 'party', label: '정당 · 유지/교체' },
     { id: 'margin', label: '득표율 격차' },
+    { id: 'swing', label: '2024 대선 대비 변화' },
   ],
   forecast: [{ id: 'rating', label: '평가 등급' }],
   baseline: [
@@ -116,11 +131,11 @@ export interface ClassifyCtx {
 const NONE: Category = { key: 'none', label: '선거 없음', fill: { color: PALETTE.none, pattern: 'dots', mark: PALETTE.noneMark } };
 const PENDING: Category = { key: 'pending', label: '결과 미발표', fill: { color: PALETTE.pending } };
 const NO_FORECAST: Category = {
-  key: 'noForecast', label: '예측 없음', fill: { color: PALETTE.noForecast, pattern: 'hatch', mark: '#c4cad1' },
+  key: 'noForecast', label: '예측 없음', fill: { color: PALETTE.noForecast, pattern: 'hatch', mark: PALETTE.noForecastMark },
 };
 
-const RUNOFF: Category = { key: 'runoff', label: '결선 투표 예정', fill: { color: PALETTE.pending, pattern: 'hatch', mark: '#8b95a1' } };
-const NEW_BOUNDARY: Category = { key: 'heldNew', label: '새 경계 · 기존 보유 정당 없음', fill: { color: '#d1d6db', pattern: 'dots', mark: '#8b95a1' } };
+const RUNOFF: Category = { key: 'runoff', label: '결선 투표 예정', fill: { color: PALETTE.pending, pattern: 'hatch', mark: PALETTE.mutedMark } };
+const NEW_BOUNDARY: Category = { key: 'heldNew', label: '새 경계 · 기존 보유 정당 없음', fill: { color: PALETTE.muted, pattern: 'dots', mark: PALETTE.mutedMark } };
 
 const P = (p: Party) => (p === 'O' ? 'I' : p);
 
@@ -131,6 +146,8 @@ export function categoryOrder(basis: Basis): string[] {
       return ['holdD', 'flipD', 'unclD', 'leadD', 'holdI', 'flipI', 'unclI', 'leadI', 'pending', 'runoff', 'leadR', 'unclR', 'flipR', 'holdR', 'none'];
     case 'margin':
       return ['mD3', 'mD2', 'mD1', 'mD0', 'mI', 'pending', 'runoff', 'mR0', 'mR1', 'mR2', 'mR3', 'none'];
+    case 'swing':
+      return ['sD3', 'sD2', 'sD1', 's0', 'sR1', 'sR2', 'sR3', 'noSwing', 'pending', 'none'];
     case 'rating':
       return [...RATING_ORDER, 'noForecast', 'none'];
     case 'held':
@@ -173,6 +190,20 @@ export function classify(r: Race | undefined, ctx: ClassifyCtx): Category {
         : [PALETTE.Rlight, PALETTE.Rmid, PALETTE.R, PALETTE.Rstrong];
       return { key: `m${p}${bin}`, label: `${PARTY_SHORT[p]} ${ranges[bin]}`, fill: { color: shades[bin] } };
     }
+    case 'swing': {
+      const s = swingOf(r);
+      if (s == null) {
+        if (!isDecided(r) && (r.result.expectedPct ?? 0) < 90 && !r.result.uncontested) return PENDING;
+        return { key: 'noSwing', label: '비교 불가 (무투표·양당 후보 없음)', fill: { color: PALETTE.noForecast, pattern: 'hatch', mark: PALETTE.noForecastMark } };
+      }
+      const a = Math.abs(s);
+      if (a < 2) return { key: 's0', label: '변화 2%p 미만', fill: { color: PALETTE.muted } };
+      const p = s > 0 ? 'D' : 'R';
+      const bin = a >= 10 ? 3 : a >= 5 ? 2 : 1;
+      const ranges = ['', '2–5%p', '5–10%p', '10%p 이상'];
+      const shades = p === 'D' ? ['', PALETTE.Dmid, PALETTE.D, PALETTE.Dstrong] : ['', PALETTE.Rmid, PALETTE.R, PALETTE.Rstrong];
+      return { key: `s${p}${bin}`, label: `${PARTY_SHORT[p]} 쪽 ${ranges[bin]}`, fill: { color: shades[bin] } };
+    }
     case 'rating': {
       const f = currentForecast(r, ctx.source);
       if (!f) return NO_FORECAST;
@@ -184,13 +215,13 @@ export function classify(r: Race | undefined, ctx: ClassifyCtx): Category {
       return { key: `held${p}`, label: `${PARTY_SHORT[p]} 보유`, fill: { color: partyColor(p) } };
     }
     case 'incumbency': {
-      if (r.seatStatus === 'vacant') return { key: 'vacant', label: '실제 공석', fill: { color: '#d1d6db', pattern: 'hatch', mark: '#8b95a1' } };
+      if (r.seatStatus === 'vacant') return { key: 'vacant', label: '실제 공석', fill: { color: PALETTE.muted, pattern: 'hatch', mark: PALETTE.mutedMark } };
       if (r.incumbent?.running) {
         const p = P(r.incumbent.party);
         return { key: `run${p}`, label: `${PARTY_SHORT[p]} 현직 출마`, fill: { color: partyColor(p) } };
       }
       const held = r.incumbent?.party ?? r.heldBy;
-      if (!held) return { key: 'newOpen', label: '새 경계 · 출마한 현직 없음', fill: { color: '#d1d6db', pattern: 'dots', mark: '#8b95a1' } };
+      if (!held) return { key: 'newOpen', label: '새 경계 · 출마한 현직 없음', fill: { color: PALETTE.muted, pattern: 'dots', mark: PALETTE.mutedMark } };
       const p = P(held);
       return { key: `open${p}`, label: `${PARTY_SHORT[p]} 현직 불출마 (열린 선거)`, fill: { color: partyLight(p), pattern: 'hatch', mark: partyColor(p) } };
     }
@@ -202,7 +233,7 @@ export function classify(r: Race | undefined, ctx: ClassifyCtx): Category {
       if (v === 'expected') return { key: `exp${w}`, label: `${name} · 예상대로`, fill: { color: partyLight(w) } };
       if (v === 'tossup') return { key: `toss${w}`, label: `${name} · 경합지 승리`, fill: { color: partyColor(w) } };
       if (v === 'upset') return { key: `upset${w}`, label: `${name} · 예상 밖 승리`, fill: { color: w === 'D' ? PALETTE.Dstrong : PALETTE.Rstrong, pattern: 'dots', mark: '#ffffff' } };
-      return { key: `unrated${w}`, label: `${name} 승리 · 선거 전 예측 없음`, fill: { color: partyColor(w), pattern: 'hatch', mark: '#e5e8eb' } };
+      return { key: `unrated${w}`, label: `${name} 승리 · 선거 전 예측 없음`, fill: { color: partyColor(w), pattern: 'hatch', mark: PALETTE.neutral } };
     }
   }
 }

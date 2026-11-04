@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { fillRef, type Fill } from '../lib/colors';
+import { PALETTE, fillRef, type Fill } from '../lib/colors';
 
 export interface HemiSegment {
   key: string;
@@ -83,9 +83,8 @@ export function Hemicycle({ segments, total, majority, children, ariaLabel }: {
               cx={s.x}
               cy={s.y}
               r={dot}
-              fill={g ? fillRef(g.fill) : '#e5e8eb'}
               className={hover && g && hover.key !== g.key ? 'seat dim' : 'seat'}
-              style={{ animationDelay: `${i * (700 / total)}ms`, transitionDelay: `${i * (500 / total)}ms` }}
+              style={{ fill: g ? fillRef(g.fill) : PALETTE.neutral, animationDelay: `${i * (700 / total)}ms`, transitionDelay: `${i * (500 / total)}ms` }}
               onPointerEnter={() => setHover(g ?? null)}
             />
           );

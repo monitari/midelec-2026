@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "build:geo": "node scripts/build-geo.mjs",
     "build:members": "node scripts/build-members.mjs",
-    "fetch:data": "node scripts/fetch-election.mjs"
+    "fetch:data": "node scripts/fetch-election.mjs",
+    "build:counties": "node scripts/build-counties.mjs",
+    "test": "vitest run",
+    "watch:data": "node scripts/fetch-election.mjs --every 5"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",
@@ -32,6 +35,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "mapshaper": "^0.6.102",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "us-atlas": "^3.0.1",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
   }
 }
