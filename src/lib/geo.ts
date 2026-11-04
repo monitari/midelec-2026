@@ -29,7 +29,7 @@ export interface GeoData {
   stateMesh: string;
   districtMesh: string;
   /** 위치·축척을 옮겨 그린 알래스카·하와이 */
-  relocated: { key: string; label: string; box: [number, number, number, number] }[];
+  relocated: { key: string; box: [number, number, number, number] }[];
 }
 
 export const mainProjection: GeoProjection = geoAlbersUsa().scale(1300).translate([MAP_W / 2, MAP_H / 2]);
@@ -81,7 +81,6 @@ export async function loadGeo(): Promise<GeoData> {
     const pad = 8;
     return {
       key,
-      label: key === 'AK' ? '알래스카 · 위치·축척 조정' : '하와이 · 위치 조정',
       box: [Math.max(2, x0 - pad), y0 - pad - 10, x1 - Math.max(2, x0 - pad) + pad, y1 - y0 + pad * 2 + 10] as [number, number, number, number],
     };
   });

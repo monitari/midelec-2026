@@ -8,7 +8,7 @@ import { PALETTE, PARTY_NAME, PARTY_SHORT, RATING_COLOR, partyColor } from '../l
 import { RATING_LABEL } from '../lib/ratings';
 import { fmtDay, fmtEt, fmtKst, fmtNum, fmtPct } from '../lib/format';
 import { stateName } from '../lib/states';
-import { PartyDot } from './ui';
+import { Avatar, PartyDot } from './ui';
 
 interface Common {
   data: ElectionData;
@@ -106,12 +106,12 @@ function Result({ race }: { race: Race }) {
             <strong>{o === 'flip' ? `${PARTY_NAME[res.winner!]} 획득` : outcomeText(race)}</strong>
             {res.winnerName && <span>{res.winnerName} 당선{res.uncontested ? ' (무투표)' : ''}</span>}
             {o === 'flip' && <span>{PARTY_SHORT[priorParty(race)!]} → {PARTY_SHORT[res.winner!]} 정당 교체</span>}
-            {o === 'unclassified' && <span>새 경계라 이전 선거구와 비교해 교체 여부를 판정하지 않아요</span>}
+            {o === 'unclassified' && <span>새 경계 · 교체 판정 없음</span>}
           </>
         ) : (
           <>
             <strong>{lead ? `${PARTY_SHORT[lead]} 후보 현재 선두` : '개표 전'}</strong>
-            <span>아직 승자가 발표되지 않았어요. 선두는 승리가 아니에요.{res.rankedChoice ? ' 과반이 없으면 순위선택 집계로 승자가 정해져요.' : ''}</span>
+            <span>승자 발표 전{res.rankedChoice ? ' · 과반 미달 시 순위선택 집계' : ''}</span>
           </>
         )}
       </div>
@@ -121,7 +121,7 @@ function Result({ race }: { race: Race }) {
         {shares.map((c, i) => (
           <li key={c.name + i} className={decided && i === 0 ? 'win' : ''}>
             <div className="cand-row">
-              <PartyDot color={partyColor(c.party)} />
+              <Avatar name={c.name} party={c.party} size={30} />
               <span className="cand-name">
                 {c.name}
                 {c.incumbent && <em>현직</em>}
@@ -164,7 +164,7 @@ function Forecast({ race, data, source }: Common & { race: Race }) {
           <div className="fc-main">
             <RatingChip rating={cur.rating} label={`원문 "${cur.label}"`} />
           </div>
-          {cur.implied && <p className="dnote" style={{ marginTop: 0, marginBottom: 10 }}>경합 목록에 없는 선거구라 이 기관이 안정권으로 본 것으로 표시했어요.</p>}
+          {cur.implied && <p className="dnote" style={{ marginTop: 0, marginBottom: 10 }}>경합 목록 외 · 안정권으로 간주</p>}
           <dl className="kv">
             <dt>평가 기준일</dt><dd>{fmtDay(cur.publishedAt)}</dd>
             <dt>처음 반영</dt><dd>{fmtKst(cur.ingestedAt)}</dd>
@@ -218,7 +218,6 @@ function Compare({ race, data, source }: Common & { race: Race }) {
           <b>{isDecided(race) ? outcomeText(race) : '미발표'}</b>
         </div>
       </div>
-      <p className="dnote">비교에는 {fmtKst(data.meta.forecastFreezeAt)} 이전에 발표된 평가만 써요. 선거 후 바뀐 평가는 제외돼요.</p>
     </Section>
   );
 }
@@ -256,10 +255,8 @@ function Baseline({ race, data }: Common & { race: Race }) {
       </dl>
       {race.boundaryChanged && (
         <div className="notice">
-          <b>경계 변경 선거구</b>
-          이번 선거에는 새 경계가 적용돼요. 같은 번호의 이전 선거구와는 다른 지역이라 정당 교체 여부를 판정하지 않아요.
-          {inc && ` 현직 ${inc.name}은(는) 이 새 선거구에 출마했어요.`}
-          <small>{data.meta.boundary.note}</small>
+          <b>새 경계 선거구</b>
+          같은 번호의 이전 선거구와 지역이 달라 정당 교체를 판정하지 않아요.
         </div>
       )}
     </Section>
@@ -274,17 +271,17 @@ function Sources({ race, data, source }: Common & { race: Race }) {
       <ul>
         <li>
           결과 <a href={race.result.url ?? data.meta.resultSource.url} target="_blank" rel="noreferrer">{data.meta.resultSource.name}</a>
-          <span>업데이트 {fmtKst(race.result.updatedAt)} (미 동부 {fmtEt(race.result.updatedAt)})</span>
+          <span>{fmtKst(race.result.updatedAt)} 업데이트</span>
         </li>
         {race.result.calledAt && (
           <li>
             승자 판정 {race.result.calledBy}
-            <span>{fmtKst(race.result.calledAt)} (미 동부 {fmtEt(race.result.calledAt)})</span>
+            <span>{fmtKst(race.result.calledAt)} · 미 동부 {fmtEt(race.result.calledAt)}</span>
           </li>
         )}
         <li>
           예측 <a href={race.forecasts[source]?.url ?? src.url} target="_blank" rel="noreferrer">{src.name} 원문</a>
-          <span>{src.scaleNote} · <a href={data.meta.forecastSource.url} target="_blank" rel="noreferrer">{data.meta.forecastSource.name}</a> 전사</span>
+          <span>{src.scaleNote}</span>
         </li>
         {race.chamber === 'house' && (
           <li>
@@ -326,7 +323,6 @@ export function StateDetail({
               <dd><PartyDot color={partyColor(c.data.governors[state].party)} />{c.data.governors[state].name} ({PARTY_SHORT[c.data.governors[state].party]})</dd>
             </dl>
           )}
-          <p className="dnote">이번 선거에서 이 자리를 선출하지 않아요. {chamber === 'senate' ? '두 의석 모두 상단 집계에 비개선 의석으로 포함돼요.' : '상단 집계에 선거 없는 주로 포함돼요.'}</p>
         </Section>
       </div>
     );
@@ -380,14 +376,40 @@ export function StateDetail({
   );
 }
 
-export function EmptyDetail({ hint }: { hint: string }) {
+/** 아무것도 고르지 않았을 때: 아직 승자가 안 나온 접전을 바로 고를 수 있게 */
+export function EmptyDetail({ hint, picks, onPick }: { hint: string; picks: Race[]; onPick: (id: string) => void }) {
   return (
     <div className="detail detail-empty">
-      <div className="empty-icon" aria-hidden>
-        <svg viewBox="0 0 24 24" width="28" height="28"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor" /></svg>
+      <div className="empty-head">
+        <div className="empty-icon" aria-hidden>
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor" /></svg>
+        </div>
+        <b>{hint}</b>
       </div>
-      <b>지역을 선택해 주세요</b>
-      <p>{hint}</p>
+      {picks.length > 0 && (
+        <>
+          <h3 className="picks-title">가장 치열한 곳</h3>
+          <ul className="picks">
+            {picks.map((r) => {
+              const [a, b] = voteShares(r);
+              return (
+                <li key={r.id}>
+                  <button onClick={() => onPick(r.id)}>
+                    <span className="picks-code">{raceCode(r)}</span>
+                    <span className="picks-main">
+                      <b>{raceTitle(r)}</b>
+                      <small>{isDecided(r) ? outcomeText(r) : `${STATUS_LABEL[r.result.status]} · 개표 ${r.result.expectedPct?.toFixed(0) ?? '–'}%`}</small>
+                    </span>
+                    <span className="picks-gap">
+                      {a && b && <><i style={{ background: partyColor(a.party) }} />{(a.pct - b.pct).toFixed(1)}%p</>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

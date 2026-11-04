@@ -1,7 +1,7 @@
 import type { Chamber, ElectionData, Mode, Party, Race } from './types';
 import { PALETTE, RATING_COLOR, partyLight, type Fill } from './colors';
 import { RATING_LABEL, RATING_ORDER, ratingSide } from './ratings';
-import { currentForecast, isDecided, outcome, priorParty, raceTitle, verdict } from './classify';
+import { currentForecast, isDecided, outcome, raceTitle, verdict } from './classify';
 
 export interface Segment {
   key: string;
@@ -42,10 +42,6 @@ export function holdovers(data: ElectionData, chamber: Chamber, races: Race[]): 
   return out;
 }
 
-function signed(n: number) {
-  return n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '±0';
-}
-
 /** 선거 전 의석·자리 구성 */
 function before(data: ElectionData, chamber: Chamber): Record<Party, number> {
   const out: Record<Party, number> = { D: 0, R: 0, I: 0, O: 0 };
@@ -59,7 +55,7 @@ function before(data: ElectionData, chamber: Chamber): Record<Party, number> {
  * 다수당 판정: 승자 발표된 선거만 세어, 한 정당이 과반선을 넘긴 순간(그 선거의 발표 시각)을 찾는다.
  * 상원은 무소속의 연대(caucus)를 포함하고, 부통령이 공화당이라 공화는 50석으로 충분하다.
  */
-function controlOf(data: ElectionData, chamber: Chamber, races: Race[], hold: Record<Party, number>): Control | undefined {
+export function controlOf(data: ElectionData, chamber: Chamber, races: Race[], hold: Record<Party, number>): Control | undefined {
   if (chamber === 'governor') return undefined;
   const need = chamber === 'senate' ? { D: 51, R: 50 } : { D: 218, R: 218 };
   const seats = { D: 0, R: 0 };
@@ -150,8 +146,7 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
       ],
       chips: [
         { label: `이번 선거 ${races.length}${chamber === 'governor' ? '개 주' : '석'}` },
-        ...(i ? [{ label: `무소속 ${i}${chamber === 'senate' ? ' (민주 협력)' : ''}`, tone: 'neutral' as const }] : []),
-        { label: `현직 불출마·현직 없음 ${open}` },
+        { label: `현직 불출마 ${open}` },
         ...(vacant ? [{ label: `공석 ${vacant}` }] : []),
       ],
     };
@@ -159,7 +154,7 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
 
   // 결과 / 예측 ↔ 결과
   const won: Record<Party, number> = { D: 0, R: 0, I: 0, O: 0 };
-  const net: Record<Party, number> = { D: 0, R: 0, I: 0, O: 0 };
+  let flips = 0;
   let undecided = 0;
   let unclassified = 0;
   const verdicts = { expected: 0, tossup: 0, upset: 0 };
@@ -171,10 +166,8 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
     const w = r.result.winner!;
     won[w]++;
     const o = outcome(r);
-    if (o === 'flip') {
-      net[w]++;
-      net[priorParty(r)!]--;
-    } else if (o === 'unclassified') unclassified++;
+    if (o === 'flip') flips++;
+    else if (o === 'unclassified') unclassified++;
     const v = verdict(r, source, data.meta.forecastFreezeAt);
     if (v === 'expected' || v === 'tossup' || v === 'upset') verdicts[v]++;
   }
@@ -183,7 +176,6 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
   const prev = before(data, chamber);
   // 상원 무소속 중 민주 협력 의석 (비개선 + 이번 당선 중 연대가 알려진 경우)
   const withCaucus = chamber === 'senate' && hold.I && caucusD === hold.I ? d + hold.I : null;
-  const netChip = (p: 'D' | 'R') => ({ label: `정당 교체 ${p === 'D' ? '민주' : '공화'} ${signed(net[p])}`, tone: p });
   const chips: Summary['chips'] =
     mode === 'compare'
       ? [
@@ -191,13 +183,13 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
           { label: `경합지 ${verdicts.tossup}` },
           { label: `예상 밖 ${verdicts.upset}`, tone: 'neutral' },
         ]
-      : [netChip('D'), netChip('R')];
-  if (unclassified) chips.push({ label: `경계 변경 ${unclassified}곳은 교체 판정 제외` });
+      : [{ label: `정당 교체 ${flips}` }];
+  if (unclassified) chips.push({ label: `새 경계 ${unclassified}곳 미판정` });
   return {
     left: {
       label: '민주당',
       value: d,
-      sub: `선거 전 ${prev.D}${withCaucus ? ` · 민주 협력 무소속 ${hold.I} 포함 ${withCaucus}` : ''}`,
+      sub: `선거 전 ${prev.D}${withCaucus ? ` · 무소속 포함 ${withCaucus}` : ''}`,
     },
     right: { label: '공화당', value: rr, sub: `선거 전 ${prev.R}` },
     control: controlOf(data, chamber, races, hold),

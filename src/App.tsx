@@ -3,11 +3,10 @@ import type { Chamber, ElectionData, Mode, Race, Selection, Unit } from './lib/t
 import { loadElectionData } from './data';
 import { loadGeo, type GeoData } from './lib/geo';
 import {
-  BASES, CHAMBER_LABEL, categoryOrder, classify, isDecided, matchesFilters, outcomeText, raceTitle,
+  BASES, CHAMBER_LABEL, categoryOrder, classify, isDecided, marginPts, matchesFilters, outcome, outcomeText, raceTitle,
   type Basis, type Category, type ClassifyCtx, type FilterKey,
 } from './lib/classify';
 import { summarize } from './lib/tally';
-import { PARTY_SHORT } from './lib/colors';
 import { fmtKst } from './lib/format';
 import { STATES, stateName } from './lib/states';
 import { SeatSummary } from './components/SeatSummary';
@@ -15,7 +14,11 @@ import { MapView, type Glyph } from './components/MapView';
 import { Filters, Legend } from './components/Legend';
 import { EmptyDetail, RaceDetail, StateDetail } from './components/DetailPanel';
 import { KeyRaces, RaceTable, RecentCalls } from './components/RaceLists';
-import { PatternDefs, Segmented, Select, Toggle, useIndicator } from './components/ui';
+import { PatternDefs, Segmented, Select, Toggle } from './components/ui';
+import { Overview } from './components/Overview';
+import { CallTimeline } from './components/CallTimeline';
+import { Flips } from './components/Flips';
+import { timeline } from './lib/story';
 import { BottomSheet } from './components/BottomSheet';
 import { BootSkeleton, Toast } from './components/Feedback';
 
@@ -60,20 +63,6 @@ function useMediaQuery(q: string) {
 
 const REFRESH_MS = 60_000;
 
-function ChamberTabs({ value, onChange }: { value: Chamber; onChange: (c: Chamber) => void }) {
-  const ref = useRef<HTMLElement>(null);
-  const ink = useIndicator(ref, 'button.on', [value]);
-  return (
-    <nav ref={ref} className="chamber-tabs" role="tablist" aria-label="선거 종류">
-      {ink && <span className="tab-ink" style={{ transform: `translateX(${ink.left}px)`, width: ink.width }} aria-hidden />}
-      {(['senate', 'house', 'governor'] as Chamber[]).map((c) => (
-        <button key={c} role="tab" aria-selected={value === c} className={value === c ? 'on' : ''} onClick={() => onChange(c)}>
-          {CHAMBER_LABEL[c]}
-        </button>
-      ))}
-    </nav>
-  );
-}
 
 const decidedStatus = (r: Race) => r.result.status === 'called' || r.result.status === 'certified';
 
@@ -143,7 +132,7 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
   const [focus, setFocus] = useState<string | null>(null);
   const [selection, setSelection] = useState<Selection>(init.selection);
   const isMobile = useMediaQuery('(max-width: 1023px)');
-  const mapCardRef = useRef<HTMLElement>(null);
+  const mapCardRef = useRef<HTMLDivElement>(null);
 
   const unit: Unit = chamber === 'house' ? houseUnit : 'state';
   const basis = basisByMode[mode];
@@ -314,6 +303,13 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // 아직 승자가 안 나온 곳 중 격차가 가장 작은 곳 (모두 끝났으면 가장 근소했던 곳)
+  const closest = useMemo(() => {
+    const pending = races.filter((r) => !isDecided(r) && r.result.status !== 'runoff' && r.result.candidates[1]?.votes);
+    return (pending.length ? pending : races.filter((r) => !r.result.uncontested))
+      .sort((a, b) => marginPts(a) - marginPts(b)).slice(0, 5);
+  }, [races]);
+
   const detail = selectedRace ? (
     <RaceDetail
       race={selectedRace}
@@ -325,12 +321,14 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
       state={selection.state} chamber={chamber} races={racesByState.get(selection.state) ?? []}
       data={data} mode={mode} source={source} onSelect={selectFromDetail}
     />
-  ) : (
-    <EmptyDetail hint={`지도에서 ${unit === 'district' ? '선거구' : '주'}를 누르면 후보, 득표, 예측과 출처를 볼 수 있어요.`} />
-  );
+  ) : null;
+  const picksPanel = <EmptyDetail hint={`지도에서 ${unit === 'district' ? '선거구' : '주'}를 눌러보세요`} picks={closest} onPick={selectFromList} />;
 
   const detailKey = selection ? (selection.type === 'race' ? selection.id : `state:${selection.state}`) : 'none';
   const animatedDetail = <div className="detail-swap" key={detailKey}>{detail}</div>;
+
+  const showTimeline = mode === 'result' || mode === 'compare';
+  const tl = useMemo(() => timeline(data, chamber), [data, chamber]);
 
   const showLeaderToggle = mode === 'result' && (basis === 'party' || basis === 'margin');
   const allFills = useMemo(() => [...legend.map((c) => c.fill), ...summary.segments.map((s) => s.fill)], [legend, summary]);
@@ -342,105 +340,110 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
         <div className="topbar-inner">
           <div>
             <h1>2026 미국 중간선거</h1>
-            <p className="topbar-sub">
-              선거일 11월 3일 · 개표 데이터 {fmtKst(data.meta.generatedAt)} 기준 (한국시간)
-            </p>
+            <p className="topbar-sub">{fmtKst(data.meta.generatedAt)} 업데이트</p>
           </div>
           {data.meta.isSample ? (
-            <span className="sample-badge" title="예측 평가와 개표 결과는 화면 확인용 가상 데이터입니다">
-              샘플 데이터 · 실제 결과 아님
-            </span>
+            <span className="sample-badge">샘플 데이터</span>
           ) : (
-            <span className="live-badge" title={data.meta.resultSource.name}>
-              <i aria-hidden />개표 집계 중 · 공식 인증 전
-            </span>
+            <span className="live-badge" title="공식 인증 전 개표 결과"><i aria-hidden />개표 중</span>
           )}
         </div>
       </header>
 
       <main className="wrap">
-        <section className="card hero">
-          <ChamberTabs value={chamber} onChange={changeChamber} />
-          <SeatSummary s={summary} chamberLabel={CHAMBER_LABEL[chamber]} />
-        </section>
+        <Overview data={data} value={chamber} onChange={changeChamber} source={source} />
 
-        <section className="card mapcard" ref={mapCardRef}>
-          <Segmented options={MODES} value={mode} onChange={changeMode} stretch ariaLabel="보는 정보" />
-
+        <div className="toolbar" ref={mapCardRef}>
+          <Segmented options={MODES} value={mode} onChange={changeMode} ariaLabel="보는 정보" />
           <div className="controls">
-            <div className="control">
-              <span className="control-label">지도</span>
-              <Segmented
-                size="sm"
-                options={[
-                  { id: 'state', label: '주별' },
-                  { id: 'district', label: '선거구별', disabled: chamber !== 'house', title: chamber !== 'house' ? '하원에서만 볼 수 있어요' : undefined },
-                ]}
-                value={unit}
-                onChange={(u) => { setHouseUnit(u); }}
+            <Segmented
+              size="sm"
+              ariaLabel="지도 단위"
+              options={[
+                { id: 'state', label: '주별' },
+                { id: 'district', label: '선거구별', disabled: chamber !== 'house', title: chamber !== 'house' ? '하원에서만 볼 수 있어요' : undefined },
+              ]}
+              value={unit}
+              onChange={(u) => { setHouseUnit(u); }}
+            />
+            {BASES[mode].length > 1 && (
+              <Select
+                label="색상"
+                options={BASES[mode]}
+                value={basis}
+                onChange={(b) => { setBasisByMode((s) => ({ ...s, [mode]: b })); setFocus(null); }}
               />
-            </div>
-            <Select
-              label="색상 기준"
-              options={BASES[mode]}
-              value={basis}
-              onChange={(b) => { setBasisByMode((s) => ({ ...s, [mode]: b })); setFocus(null); }}
-            />
-            <Select
-              label="예측 출처"
-              options={data.forecastSources.map((s) => ({ id: s.id, label: s.name }))}
-              value={source}
-              onChange={(s) => { setSource(s); setFocus(null); }}
-            />
+            )}
+            {mode !== 'baseline' && (
+              <Select
+                label="예측"
+                options={data.forecastSources.map((s) => ({ id: s.id, label: s.name }))}
+                value={source}
+                onChange={(s) => { setSource(s); setFocus(null); }}
+              />
+            )}
             {showLeaderToggle && <Toggle checked={includeLeader} onChange={setIncludeLeader}>현재 선두 포함</Toggle>}
           </div>
-          {mode === 'compare' && (
-            <p className="info-line">선거 전 예측은 {fmtKst(freezeAt)}(한국시간) 이전 발표분으로 고정해 비교해요.</p>
-          )}
-          {mode === 'forecast' && (
-            <p className="info-line">{data.forecastSources.find((s) => s.id === source)!.scaleNote} — 사이트 7단계로 맞춰 표시하고, 원문 등급은 상세에서 볼 수 있어요.</p>
-          )}
+        </div>
 
-          <div className="map-layout">
-            <div className="map-col">
-              {geo ? (
-                <MapView
-                  geo={geo}
-                  unit={unit}
-                  categoryOf={categoryOf}
-                  dimmed={dimmed}
-                  glyphs={glyphs}
-                  selectedKey={selectedKey}
-                  selectedState={selectedState}
-                  onSelect={onMapSelect}
-                  describe={describe}
-                  showMetros={unit === 'district'}
-                  isMobile={isMobile}
-                  focus={mapFocus}
-                />
-              ) : (
-                <div className="map-loading">{geoError ? '지도 경계 자료를 불러오지 못했어요.' : '지도를 불러오는 중…'}</div>
-              )}
-              <Legend
-                items={legend}
-                focus={focus}
-                onFocus={setFocus}
-                unitLabel={chamber === 'house' ? (unit === 'state' ? '막대·숫자 = 선거구 수' : '숫자 = 선거구 수') : '숫자 = 주 수'}
+        {/* 지도가 주인공: 넓게 쓰고, 오른쪽 사이드바가 요약 → 상세로 바뀐다 */}
+        <div className="stage">
+          <section className="map-card">
+            {geo ? (
+              <MapView
+                geo={geo}
+                unit={unit}
+                categoryOf={categoryOf}
+                dimmed={dimmed}
+                glyphs={glyphs}
+                selectedKey={selectedKey}
+                selectedState={selectedState}
+                onSelect={onMapSelect}
+                describe={describe}
+                showMetros={unit === 'district'}
+                isMobile={isMobile}
+                focus={mapFocus}
+                footer={
+                  <div className="map-foot">
+                    <Legend items={legend} focus={focus} onFocus={setFocus} />
+                    <Filters value={filters} onChange={setFilters} isHouse={chamber === 'house'} />
+                  </div>
+                }
               />
-              {chamber === 'house' && unit === 'state' && (
-                <p className="info-line">하원은 한 주 안에서도 의석이 나뉘므로 주를 한 색으로 칠하지 않고, 주마다 선거구 분류를 막대로 보여줘요.</p>
-              )}
-              <Filters value={filters} onChange={setFilters} isHouse={chamber === 'house'} />
-            </div>
+            ) : (
+              <div className="map-loading">{geoError ? '지도 경계 자료를 불러오지 못했어요.' : ''}</div>
+            )}
+          </section>
 
-            {!isMobile && <aside className="panel">{animatedDetail}</aside>}
-          </div>
-        </section>
+          <aside className="side">
+            <div className="side-card">
+              <SeatSummary s={summary} chamberLabel={CHAMBER_LABEL[chamber]} compact={!isMobile && !!selection} />
+            </div>
+            {!isMobile && selection ? (
+              <div className="side-card side-detail">{animatedDetail}</div>
+            ) : (
+              <>
+                {showTimeline && <div className="side-card"><CallTimeline tl={tl} title="개표 흐름" /></div>}
+                <div className="side-card side-detail">{picksPanel}</div>
+              </>
+            )}
+          </aside>
+        </div>
+
+        {(mode === 'result' || mode === 'compare') && (
+          <section className="card">
+            <div className="card-head">
+              <h2>주인이 바뀐 곳</h2>
+              <span className="count">{listRaces.filter((r) => outcome(r) === 'flip').length}</span>
+            </div>
+            <Flips races={listRaces} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} />
+          </section>
+        )}
 
         <section className="card">
           <div className="card-head">
             <h2>주요 승부처</h2>
-            <span className="muted">선거 전 ‘경합’·‘경합 우세’ 평가 · {data.forecastSources.find((s) => s.id === source)!.name}</span>
+            <span className="pill">{data.forecastSources.find((s) => s.id === source)!.name}</span>
           </div>
           <KeyRaces races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} />
         </section>
@@ -451,29 +454,21 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
             <RecentCalls races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} fresh={fresh} />
           </section>
           <section className="card">
-            <div className="card-head"><h2>전체 선거 목록</h2>{filters.size > 0 && <span className="pill">필터 적용 중</span>}</div>
+            <div className="card-head"><h2>전체 선거</h2></div>
             <RaceTable races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} fresh={fresh} />
           </section>
         </div>
 
-        <footer className="foot">
-          <h3>데이터 기준</h3>
+        <details className="foot">
+          <summary>데이터 출처와 기준</summary>
           <ul>
-            <li>
-              <b>결과</b> <a href={data.meta.resultSource.url} target="_blank" rel="noreferrer">{data.meta.resultSource.name}</a>.
-              개표 선두와 승자 발표는 구분하며, 승자는 판정 주체가 발표한 경우에만 정당색으로 칠해요. {data.meta.resultSource.note}
-            </li>
-            <li>
-              <b>예측</b> {data.forecastSources.map((s) => s.name).join(', ')} — <a href={data.meta.forecastSource.url} target="_blank" rel="noreferrer">{data.meta.forecastSource.name}</a> 기준.
-              출처마다 지도를 따로 보여주고 평균 내지 않아요. {data.meta.forecastSource.note}
-            </li>
-            <li><b>지도</b> <a href={data.meta.boundary.url} target="_blank" rel="noreferrer">{data.meta.boundary.name}</a> · 버전 {data.meta.boundary.version}. {data.meta.boundary.note}</li>
-            <li><b>선거 전 현황</b> 하원 현직은 <a href={data.meta.rosterSource.url} target="_blank" rel="noreferrer">{data.meta.rosterSource.name}</a>, 상원·주지사 보유 정당은 공개 정보를 정리했고, 현직 출마 여부는 실제 투표용지 기준이에요.</li>
-            {data.meta.isSample && <li><b>샘플</b> 예측 평가와 개표 결과는 화면 확인용 가상 데이터예요. 실제 기관·결과와 무관해요.</li>}
-            <li><b>무소속</b> 정당 표기는 무소속으로, 상단 집계에서는 의회 내 연대({PARTY_SHORT.D})를 함께 적어요.</li>
-            <li><b>갱신</b> 데이터 수집 {fmtKst(data.meta.fetchedAt)} · 화면은 1분마다 새 데이터를 확인해요.</li>
+            <li><b>결과</b> <a href={data.meta.resultSource.url} target="_blank" rel="noreferrer">{data.meta.resultSource.name}</a>. 승자는 판정 주체가 발표한 경우에만 정당색으로 칠해요. {data.meta.resultSource.note}</li>
+            <li><b>예측</b> {data.forecastSources.map((s) => s.name).join(', ')} · <a href={data.meta.forecastSource.url} target="_blank" rel="noreferrer">{data.meta.forecastSource.name}</a>. {data.meta.forecastSource.note} 예측 ↔ 결과는 {fmtKst(freezeAt)} 이전 평가만 비교해요.</li>
+            <li><b>지도</b> <a href={data.meta.boundary.url} target="_blank" rel="noreferrer">{data.meta.boundary.name}</a>. {data.meta.boundary.note}</li>
+            <li><b>선거 전 현황</b> 하원 현직 <a href={data.meta.rosterSource.url} target="_blank" rel="noreferrer">{data.meta.rosterSource.name}</a> · 현직 출마 여부는 실제 투표용지 기준.</li>
+            <li><b>수집</b> {fmtKst(data.meta.fetchedAt)} · 1분마다 새 데이터를 확인해요.</li>
           </ul>
-        </footer>
+        </details>
       </main>
 
       {/* 모바일: 지도를 가리지 않는 하단 패널. 다른 지역을 눌러도 계속 열려 있다 */}

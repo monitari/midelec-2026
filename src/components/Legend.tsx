@@ -3,12 +3,11 @@ import { FILTERS } from '../lib/classify';
 import { Swatch } from './ui';
 
 export function Legend({
-  items, focus, onFocus, unitLabel,
+  items, focus, onFocus,
 }: {
   items: (Category & { count: number })[];
   focus: string | null;
   onFocus: (key: string | null) => void;
-  unitLabel: string;
 }) {
   return (
     <div className="legend" role="list">
@@ -25,7 +24,6 @@ export function Legend({
           <b>{c.count}</b>
         </button>
       ))}
-      <span className="legend-unit">{unitLabel}</span>
     </div>
   );
 }
@@ -39,7 +37,6 @@ export function Filters({
 }) {
   return (
     <div className="filters">
-      <span className="filters-label">필터</span>
       {FILTERS.filter((f) => isHouse || !f.houseOnly).map((f) => (
         <button
           key={f.id}

@@ -29,6 +29,8 @@ interface Props {
   isMobile: boolean;
   /** 이 지역으로 지도를 옮긴다 (목록에서 고르거나 주 전체 보기를 눌렀을 때). nonce 가 바뀔 때마다 실행 */
   focus?: { key: string; nonce: number } | null;
+  /** 지도 바로 아래 (범례·필터) */
+  footer?: ReactNode;
 }
 
 const ms = (n: number) => (prefersReducedMotion() ? 0 : n);
@@ -85,8 +87,18 @@ export function MapView(props: Props) {
   const [k, setK] = useState(1);
   const [pxPerUnit, setPxPerUnit] = useState(1);
   const [hover, setHover] = useState<{ key: string; x: number; y: number } | null>(null);
-  const [enabledMetros, setEnabledMetros] = useState(() => new Set(METROS.filter((m) => m.defaultOn).map((m) => m.id)));
+  // 넓은 화면에서는 도시권 네 곳을 모두 펼쳐 둔다
+  const [enabledMetros, setEnabledMetros] = useState(() => new Set(METROS.filter((m) => m.defaultOn || window.innerWidth >= 1280).map((m) => m.id)));
   const [mobileMetro, setMobileMetro] = useState('nyc');
+  // Ctrl 없이 휠을 굴리면 잠깐 안내를 띄운다 (페이지 스크롤은 그대로)
+  const [wheelHint, setWheelHint] = useState(false);
+  const wheelTimer = useRef(0);
+  const onWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) return;
+    setWheelHint(true);
+    window.clearTimeout(wheelTimer.current);
+    wheelTimer.current = window.setTimeout(() => setWheelHint(false), 1200);
+  };
 
   const regions = unit === 'district' ? geo.districts : geo.states;
   const byKey = useMemo(() => new Map(regions.map((r) => [r.key, r])), [regions]);
@@ -171,6 +183,7 @@ export function MapView(props: Props) {
           onPointerMove={onMove}
           onPointerLeave={() => setHover(null)}
           onClick={onClick}
+          onWheel={onWheel}
         >
           <g ref={gRef}>
             <RegionLayer regions={regions} categoryOf={props.categoryOf} dimmed={props.dimmed} neutral={!!glyphs} />
@@ -181,7 +194,6 @@ export function MapView(props: Props) {
             {geo.relocated.map((r) => (
               <g key={r.key} className="relocated" pointerEvents="none">
                 <rect x={r.box[0]} y={r.box[1]} width={r.box[2]} height={r.box[3]} rx={6} />
-                <text x={r.box[0] + 6} y={r.box[1] + 11} fontSize={9 / k}>{r.label}</text>
               </g>
             ))}
 
@@ -216,8 +228,10 @@ export function MapView(props: Props) {
           <button onClick={() => zoomBy(1 / 1.6)} aria-label="축소">−</button>
           {k > 1 && <button className="zoom-reset" onClick={reset}>전국</button>}
         </div>
-        {!isMobile && <div className="map-hint">Ctrl + 스크롤로 확대 · 드래그로 이동</div>}
+        {!isMobile && wheelHint && <div className="map-hint">Ctrl + 스크롤로 확대</div>}
       </div>
+
+      {props.footer}
 
       {showMetros && (
         <div className="metros">
@@ -252,7 +266,7 @@ export function MapView(props: Props) {
             {activeMetros.map((m) =>
               collapsed.has(m.id) ? (
                 <div key={m.id} className="metro collapsed">
-                  <span>{m.name}</span> 본 지도에서 충분히 확대되어 접었어요
+                  <span>{m.name}</span> 본 지도에서 보는 중
                 </div>
               ) : (
                 <MetroInset
@@ -269,7 +283,6 @@ export function MapView(props: Props) {
               ),
             )}
           </div>
-          <p className="metros-note">확대도의 선거구는 본 지도와 같은 의석이에요. 집계에는 한 번만 포함돼요.</p>
         </div>
       )}
 
@@ -334,7 +347,9 @@ const MetroInset = memo(function MetroInset({
     <figure className="metro">
       <figcaption>
         <b>{metro.name}</b>
-        <button className="link" onClick={onFocusMain}>본 지도에서 보기</button>
+        <button className="icon-btn" onClick={onFocusMain} aria-label={`본 지도에서 ${metro.name} 보기`} title="본 지도에서 보기">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
       </figcaption>
       <svg
         viewBox={`0 0 ${layer.width} ${layer.height}`}

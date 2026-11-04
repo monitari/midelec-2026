@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { fillKey, fillRef, type Fill } from '../lib/colors';
+import { fillKey, fillRef, partyColor, type Fill } from '../lib/colors';
+import type { Party } from '../lib/types';
 
 export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -151,6 +152,17 @@ export function PatternDefs({ fills }: { fills: Fill[] }) {
         )}
       </defs>
     </svg>
+  );
+}
+
+/** 후보 이니셜 원. 정당색 바탕에 흰 글자 */
+export function Avatar({ name, party, size = 32 }: { name: string; party: Party; size?: number }) {
+  const parts = name.replace(/\(.*\)/, '').trim().split(/\s+/).filter((w) => /^\p{L}/u.test(w));
+  const initials = parts.length > 1 ? parts[0][0] + parts.at(-1)![0] : (parts[0]?.slice(0, 2) ?? '?');
+  return (
+    <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.38, background: party === 'O' ? '#b0b8c1' : partyColor(party) }} aria-hidden>
+      {initials.toUpperCase()}
+    </span>
   );
 }
 
