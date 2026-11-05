@@ -4,11 +4,18 @@
 
 ```bash
 npm install
-npm run fetch:data   # 최신 개표 → public/data/election-2026.json, counties-2026.json
 npm run dev
 ```
 
-개표가 진행되는 동안에는 `npm run watch:data`(5분마다 다시 받기)를 켜 두면 화면이 1분 안에 따라 갱신된다. 수집이 15분 넘게 멈추면 상단 배지가 경고로 바뀐다.
+**개표 결과는 보는 사람의 브라우저가 NYT 결과 JSON 을 직접 받아 화면에서 가공한다.** 사이트(배포본)에는 결과 데이터 사본이 없고, 5분마다(탭이 보일 때만) 새로 확인한다. 공급원이 형식을 바꾸거나 일부만 내려주면 저장 전 검사와 같은 기준으로 걸러 직전 화면을 유지한다.
+
+오프라인 개발이나 화면 테스트는 로컬 사본으로 한다.
+
+```bash
+npm run fetch:data              # NYT 원본을 받아 검사 → public/data/election-2026.json, counties-2026.json (배포본에는 빠짐)
+VITE_DATA=local npm run dev      # 로컬 사본으로 띄우기
+npm run watch:data              # 5분마다 다시 받기
+```
 
 ```bash
 npm test             # 단위 테스트 (파서·저장 전 검사·정당 교체·예측 비교·다수당 판정·확대도 접기)
@@ -16,13 +23,19 @@ npm run test:e2e     # 실제로 눌러 보는 테스트 (설치된 Chrome 사�
 npm run build
 ```
 
-수집 스크립트는 저장 전에 데이터를 검사한다(선거 수, 상태 값, 승자 발표 수가 갑자기 줄었는지). 이상하면 저장하지 않고 직전 파일을 그대로 둔다.
+수집 스크립트와 화면은 같은 조립 코드(`scripts/lib/assemble.mjs`)와 같은 검사(선거 수, 상태 값, 승자 발표 수가 갑자기 줄었는지)를 쓴다.
+
+## 배포 (GitHub Pages)
+
+`main` 에 올리면 `.github/workflows/pages.yml` 이 테스트 → 빌드 → 배포한다. 저장소 설정의 Pages 소스는 **GitHub Actions**. 빌드는 상대 경로(`base: './'`)라 하위 경로(`/midelec-2026/`)에서도 동작한다.
 
 ## 구조
 
 | 경로 | 역할 |
 |---|---|
-| `scripts/fetch-election.mjs` | 결과·예측·선거 전 현황·후보 사진·카운티 결과를 합쳐 `public/data/*.json` 생성 (`--every <분>`, `--cache <폴더>`, `--refresh-forecasts`) |
+| `scripts/lib/assemble.mjs` | NYT 원본 + 예측 스냅숏 + 선거 전 현황 → 화면 데이터. 수집 스크립트와 브라우저가 함께 쓴다 |
+| `src/data/index.ts` | 브라우저에서 NYT 원본을 받아 조립·검사 (`VITE_DATA=local` 이면 로컬 사본) |
+| `scripts/fetch-election.mjs` | 같은 조립 코드로 로컬 사본 생성 (`--every <분>`, `--cache <폴더>`, `--refresh-forecasts`) |
 | `scripts/lib/parse.mjs` | 원본(Wikipedia 위키텍스트, NYT JSON) 파싱 함수 — 테스트 대상 |
 | `scripts/build-geo.mjs` · `build-counties.mjs` | Census 경계 → `public/data/us-geo.json` · `us-counties.json` |
 | `scripts/build-members.mjs` | 현직 의원 → `house-members.json`, `congress-roster.json` |
@@ -37,7 +50,7 @@ npm run build
 
 | 구분 | 출처 | 비고 |
 |---|---|---|
-| 결과 | The New York Times 결과 페이지 JSON (AP 집계·승자 판정) | **공식 API가 아님.** 개인·개발용으로만 쓰고, 공개 서비스에는 AP Elections API 등 이용 계약된 공급원으로 바꿔야 한다. 이 데이터로 만든 파일은 저장소에 넣지 않는다. |
+| 결과 | The New York Times 결과 페이지 JSON (AP 집계·승자 판정) | **공식 API가 아니며 이 저장소·배포본에는 사본이 없다.** 보는 사람의 브라우저가 직접 받는다. 형식이 바뀌거나 막힐 수 있고, 상업적·대규모 서비스라면 AP Elections API 등 이용 계약된 공급원을 써야 한다. |
 | 카운티 결과 | 같은 NYT 피드의 카운티 단위 | 알래스카는 주 하원 선거구 단위로 집계해 카운티 지도를 그리지 않는다. 코네티컷은 카운티 대신 계획 권역으로 그린다. |
 | 예측 | Wikipedia 2026 선거 예측 표 (Cook, Inside Elections, Sabato, DDHQ, RCP, Fox) | 선거 직전 최종 평가만 있고 등급 변경 이력은 없다. 하원은 경합 목록에 없는 선거구를 "모든 기관 안정권"으로 간주한다(표 머리말 기준). |
 | 경계 | Census 119대 지도(cb_2024, 1:500k) + 2026 TIGER/Line 120대 경계, 카운티는 Census cartographic 1:5m(cb_2024_us_county) | 재조정 주만 TIGER로 교체하고 1:500k 육지 윤곽으로 잘라 쓴다. |
@@ -68,3 +81,17 @@ npm run build:members -- legislators-current.json
 # 예측 스냅숏을 다시 만들 때만 (선거 후 편집이 섞일 수 있음)
 node scripts/fetch-election.mjs --refresh-forecasts
 ```
+
+## 라이선스
+
+**코드**는 [MIT](LICENSE). **데이터 파일**은 각자의 조건을 따른다.
+
+| 파일 | 출처 | 조건 |
+|---|---|---|
+| `public/data/us-geo.json`, `us-counties.json` | U.S. Census Bureau | 퍼블릭 도메인 (미 정부 저작물) |
+| `scripts/data/forecasts-final.json` | Wikipedia 2026 선거 예측 표 (각 기관 평가의 전사본) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) — 출처 표시, 같은 조건으로 배포 |
+| `scripts/data/house-members.json`, `congress-roster.json` | [unitedstates/congress-legislators](https://github.com/unitedstates/congress-legislators) | CC0 (퍼블릭 도메인) |
+| `scripts/data/baseline.json` | 공개 정보를 정리 | MIT (코드와 같음) |
+| 후보 사진 (외부 링크, 저장소에 없음) | [unitedstates/images](https://github.com/unitedstates/images) | 퍼블릭 도메인 |
+
+**NYT 결과 데이터**는 저장소와 배포본에 넣지 않는다. 수집 스크립트나 사이트로 NYT 데이터를 받는 것은 각자 [NYT 이용 약관](https://help.nytimes.com/hc/en-us/articles/115014893428-Terms-of-Service)을 따를 책임이 있다.

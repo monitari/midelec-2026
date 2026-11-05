@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import type { ElectionData } from '../lib/types';
 import { fmtKst } from '../lib/format';
 
-/** 데이터 수집이 이 시간 넘게 멈추면 경고 */
-const STALE_MS = 15 * 60_000;
+/** 데이터를 새로 받지 못한 채 이 시간이 지나면 경고 (5분 간격으로 받으므로 세 번쯤 실패한 셈) */
+const STALE_MS = 16 * 60_000;
 
 /** 개표 상태 배지. 수집이 오래 멈췄으면 경고로 바뀐다 */
 export function StatusBadge({ meta }: { meta: ElectionData['meta'] }) {
@@ -18,7 +18,7 @@ export function StatusBadge({ meta }: { meta: ElectionData['meta'] }) {
     const min = Math.floor(age / 60_000);
     const text = min >= 120 ? `${Math.floor(min / 60)}시간` : `${min}분`;
     return (
-      <span className="status-badge stale" title={`마지막 수집 ${fmtKst(meta.fetchedAt)} · npm run fetch:data -- --every 5 로 계속 받을 수 있어요`}>
+      <span className="status-badge stale" title={`마지막으로 받은 시각 ${fmtKst(meta.fetchedAt)} · 자동으로 계속 다시 시도해요`}>
         <i aria-hidden />{text}째 갱신 없음
       </span>
     );

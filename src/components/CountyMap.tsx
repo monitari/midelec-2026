@@ -6,6 +6,7 @@ import type { Topology } from 'topojson-specification';
 import type { CountyResults, Party, Race } from '../lib/types';
 import { PALETTE } from '../lib/colors';
 import { ABBR_TO_FIPS } from '../lib/states';
+import { loadCountyResults } from '../data';
 
 type County = Feature<Geometry, { name: string }> & { id: string };
 
@@ -13,9 +14,8 @@ type County = Feature<Geometry, { name: string }> & { id: string };
 let loading: Promise<{ counties: County[]; results: CountyResults }> | null = null;
 function loadCounties() {
   loading ??= Promise.all([
-    fetch('/data/us-counties.json').then((r) => r.json() as Promise<Topology>),
-    fetch('/data/counties-2026.json', { cache: 'no-cache' })
-      .then((r) => (r.ok && r.headers.get('content-type')?.includes('json') ? r.json() : {}) as Promise<CountyResults>),
+    fetch(`${import.meta.env.BASE_URL}data/us-counties.json`).then((r) => r.json() as Promise<Topology>),
+    Promise.all([loadCountyResults('S'), loadCountyResults('G')]).then(([s, g]) => ({ ...s, ...g }) as CountyResults),
   ]).then(([topo, results]) => ({
     counties: (feature(topo, topo.objects.counties) as FeatureCollection<Geometry, { name: string }>).features as County[],
     results,

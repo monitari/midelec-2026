@@ -65,7 +65,8 @@ function useMediaQuery(q: string) {
   return m;
 }
 
-const REFRESH_MS = 60_000;
+/** NYT 원본(하원 약 10MB)을 보는 사람마다 받으므로 너무 자주 받지 않는다. 바뀌지 않았으면 304 로 끝난다 */
+const REFRESH_MS = 5 * 60_000;
 /** 새로 발표된 결과의 NEW 표시를 유지하는 시간 */
 const FRESH_MS = 5 * 60_000;
 
@@ -87,7 +88,8 @@ export default function App() {
 
   useEffect(() => {
     let alive = true;
-    const load = () => loadElectionData().then(
+    let lastLoad = 0;
+    const load = () => { lastLoad = Date.now(); return loadElectionData(prevRef.current).then(
       (d) => {
         if (!alive) return;
         setError(null);
@@ -110,11 +112,13 @@ export default function App() {
         // 이미 화면이 있으면 마지막 데이터를 그대로 두고 알리기만 한다
         if (prevRef.current) setToast({ id: Date.now(), text: '새 데이터를 불러오지 못했어요. 마지막 데이터로 보여주는 중이에요.', tone: 'warn' });
       },
-    );
+    ); };
     load();
-    // 수집 스크립트를 다시 돌리면 화면도 따라 갱신된다
-    const t = window.setInterval(load, REFRESH_MS);
-    return () => { alive = false; window.clearInterval(t); };
+    // 탭이 보일 때만 주기적으로 다시 받고, 오래 숨겨 뒀다 돌아오면 바로 받는다
+    const t = window.setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
+    const onVisible = () => { if (!document.hidden && Date.now() - lastLoad > REFRESH_MS) load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { alive = false; window.clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
   }, []);
   if (!data) return error ? <div className="boot">{error}</div> : <BootSkeleton />;
   return (

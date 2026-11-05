@@ -47,7 +47,7 @@ function largestPart(f: Shape): Feature<Polygon> {
 }
 
 export async function loadGeo(): Promise<GeoData> {
-  const topo = (await (await fetch('/data/us-geo.json')).json()) as Topology<{
+  const topo = (await (await fetch(`${import.meta.env.BASE_URL}data/us-geo.json`)).json()) as Topology<{
     districts: GeometryCollection<{ id: string; st: string }>;
     states: GeometryCollection<{ st: string }>;
   }>;
