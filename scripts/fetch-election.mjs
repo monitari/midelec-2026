@@ -11,7 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  SOURCES, countyResults, incumbentsIn, matchMember, nameOf, pad, parsePredictions, parseResult, partyOf, photoUrl, pres2024, validateData,
+  SOURCES, countyResults, incumbentsIn, matchMember, nameOf, notionalHolder, pad, parsePredictions, parseResult, partyOf, photoUrl, pres2024, validateData,
 } from './lib/parse.mjs';
 
 /** 임시 파일에 쓴 뒤 바꿔치기 — 쓰는 도중 화면이 반쯤 쓴 파일을 읽지 않도록 */
@@ -208,6 +208,7 @@ async function run() {
       incumbent,
       heldBy,
       boundaryChanged: changed || undefined,
+      notional: changed ? notionalHolder(incs.map((c) => partyOf(c.party?.nyt_id)), p24) : undefined,
       pres2024: p24,
       forecasts: forecastsFor(`H-${key}`, 'house', key, favored),
       result,

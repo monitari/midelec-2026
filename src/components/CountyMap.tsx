@@ -9,7 +9,7 @@ import { ABBR_TO_FIPS } from '../lib/states';
 
 type County = Feature<Geometry, { name: string }> & { id: string };
 
-// 카운티 경계(약 800KB)와 결과는 상원·주지사 상세를 처음 열 때 한 번만 받는다
+// 카운티 경계(약 700KB)와 결과는 상원·주지사 상세를 처음 열 때 한 번만 받는다
 let loading: Promise<{ counties: County[]; results: CountyResults }> | null = null;
 function loadCounties() {
   loading ??= Promise.all([
@@ -51,7 +51,7 @@ export function CountyMap({ race }: { race: Race }) {
     const shapes = data.counties.filter((f) => String(f.id).startsWith(prefix));
     const res = data.results[race.id] ?? {};
     const matched = shapes.filter((f) => res[f.id]).length;
-    // 카운티가 아닌 단위로 집계하는 주(알래스카), 경계 체계가 바뀐 주(코네티컷)는 그리지 않는다
+    // 카운티가 아닌 단위로 집계하는 주(알래스카)는 그리지 않는다
     if (!shapes.length || matched < shapes.length / 2) return { empty: true as const };
     const fc: FeatureCollection = { type: 'FeatureCollection', features: shapes };
     const proj = geoAlbersUsa().fitWidth(W, fc);

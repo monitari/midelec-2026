@@ -124,8 +124,39 @@ export function metroFrame(m: MetroDef): [number, number, number, number] {
 /**
  * 본 지도에서 이 도시권이 이미 충분히 크게 보이는지 (그러면 확대도를 접는다).
  * 화면 안에 보이는지도 함께 본다 — 배율만 보면 화면 밖 도시권까지 접혀, 틀이 가장 작은 시카고권만 남았다.
+ * 틀이 아주 작은 도시권은 최대로 확대해도 기준에 못 미치므로, 그때는 낼 수 있는 최대 크기를 기준으로 삼는다.
  * @param view 본 지도의 이동·배율 (지도 좌표)
  */
+/**
+ * 키보드로 지도를 다닐 때: 지금 지역에서 그 방향(화면 기준 위·아래·왼쪽·오른쪽)에 있는 가장 가까운 지역.
+ * 방향에서 60° 안쪽만 보고, 옆으로 벗어날수록 불리하게 센다.
+ */
+export function nearestInDirection(
+  regions: { key: string; anchor: [number, number] }[],
+  from: [number, number],
+  dir: 'up' | 'down' | 'left' | 'right',
+  exclude?: string,
+) {
+  const [ux, uy] = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir];
+  let best: string | null = null;
+  let bestScore = Infinity;
+  for (const r of regions) {
+    if (r.key === exclude) continue;
+    const dx = r.anchor[0] - from[0];
+    const dy = r.anchor[1] - from[1];
+    const along = dx * ux + dy * uy;
+    if (along <= 0) continue;
+    const across = Math.abs(dx * uy - dy * ux);
+    if (across > along * Math.tan(Math.PI / 3)) continue;
+    const score = along + across * 2;
+    if (score < bestScore) [best, bestScore] = [r.key, score];
+  }
+  return best;
+}
+
+/** 본 지도 최대 확대 배율 */
+export const MAX_ZOOM = 14;
+
 export function metroCovered(
   [x, y, w, h]: [number, number, number, number],
   view: { x: number; y: number; k: number },
@@ -135,7 +166,9 @@ export function metroCovered(
   const sx = view.x + x * view.k;
   const sy = view.y + y * view.k;
   const visible = sx < MAP_W && sx + w * view.k > 0 && sy < MAP_H && sy + h * view.k > 0;
-  return visible && w * view.k * pxPerUnit > minPx;
+  // 최대로 확대해도 기준에 못 미치는 작은 도시권(시카고권)은, 낼 수 있는 최대 크기의 90% 에서 접는다
+  const threshold = Math.min(minPx, w * MAX_ZOOM * pxPerUnit * 0.9);
+  return visible && w * view.k * pxPerUnit >= threshold;
 }
 
 export interface MetroLayer {

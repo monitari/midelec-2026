@@ -39,6 +39,12 @@ export function swingOf(r: Race): number | null {
 export const priorParty = (r: Race): Party | null => (r.boundaryChanged ? null : r.heldBy);
 
 export type Outcome = 'hold' | 'flip' | 'unclassified' | 'pending';
+
+/** 새 경계 선거구에서 추정 보유 정당과 다른 정당이 이긴 경우 (공식 정당 교체와 따로 센다) */
+export const estimatedFlip = (r: Race) =>
+  !!(r.boundaryChanged && isDecided(r) && r.notional && r.result.winner !== r.notional.party);
+
+export const NOTIONAL_BASIS = { incumbent: '출마한 현직 정당 기준', pres2024: '새 경계 2024 대선 기준' } as const;
 export function outcome(r: Race): Outcome {
   if (!isDecided(r)) return 'pending';
   const prior = priorParty(r);
@@ -51,7 +57,11 @@ export function outcomeText(r: Race): string {
   const w = r.result.winner!;
   if (o === 'hold') return `${PARTY_SHORT[w]} 유지`;
   if (o === 'flip') return `${PARTY_SHORT[w]} 획득 · ${PARTY_SHORT[priorParty(r)!]}→${PARTY_SHORT[w]}`;
-  if (o === 'unclassified') return `${PARTY_SHORT[w]} 승리 · 교체 판정 보류`;
+  if (o === 'unclassified') {
+    return estimatedFlip(r)
+      ? `${PARTY_SHORT[w]} 승리 · 추정 교체 ${PARTY_SHORT[r.notional!.party]}→${PARTY_SHORT[w]}`
+      : `${PARTY_SHORT[w]} 승리 · 교체 판정 보류`;
+  }
   if (r.result.status === 'runoff') return '결선 투표 예정';
   const lead = leaderParty(r);
   const pct = r.result.expectedPct;
@@ -143,7 +153,7 @@ const P = (p: Party) => (p === 'O' ? 'I' : p);
 export function categoryOrder(basis: Basis): string[] {
   switch (basis) {
     case 'party':
-      return ['holdD', 'flipD', 'unclD', 'leadD', 'holdI', 'flipI', 'unclI', 'leadI', 'pending', 'runoff', 'leadR', 'unclR', 'flipR', 'holdR', 'none'];
+      return ['holdD', 'flipD', 'estD', 'unclD', 'leadD', 'holdI', 'flipI', 'estI', 'unclI', 'leadI', 'pending', 'runoff', 'leadR', 'unclR', 'estR', 'flipR', 'holdR', 'none'];
     case 'margin':
       return ['mD3', 'mD2', 'mD1', 'mD0', 'mI', 'pending', 'runoff', 'mR0', 'mR1', 'mR2', 'mR3', 'none'];
     case 'swing':
@@ -175,6 +185,9 @@ export function classify(r: Race | undefined, ctx: ClassifyCtx): Category {
       const w = r.result.winner!;
       if (o === 'hold') return { key: `hold${P(w)}`, label: `${PARTY_SHORT[w]} 유지`, fill: { color: partyColor(w) } };
       if (o === 'flip') return { key: `flip${P(w)}`, label: `${PARTY_SHORT[w]} 획득 (정당 교체)`, fill: { color: partyColor(w), pattern: 'hatch' } };
+      if (estimatedFlip(r)) {
+        return { key: `est${P(w)}`, label: `${PARTY_SHORT[w]} 승리 · 새 경계 추정 교체`, fill: { color: partyColor(w), pattern: 'hatch', edge: PALETTE.ink } };
+      }
       return { key: `uncl${P(w)}`, label: `${PARTY_SHORT[w]} 승리 · 새 경계 (교체 판정 제외)`, fill: { color: partyColor(w), edge: PALETTE.ink } };
     }
     case 'margin': {

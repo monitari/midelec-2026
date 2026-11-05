@@ -38,9 +38,9 @@ npm run build
 | 구분 | 출처 | 비고 |
 |---|---|---|
 | 결과 | The New York Times 결과 페이지 JSON (AP 집계·승자 판정) | **공식 API가 아님.** 개인·개발용으로만 쓰고, 공개 서비스에는 AP Elections API 등 이용 계약된 공급원으로 바꿔야 한다. 이 데이터로 만든 파일은 저장소에 넣지 않는다. |
-| 카운티 결과 | 같은 NYT 피드의 카운티 단위 | 알래스카(주 하원 선거구 단위)와 코네티컷(카운티 대신 계획 권역)은 카운티 지도를 그리지 않는다. |
+| 카운티 결과 | 같은 NYT 피드의 카운티 단위 | 알래스카는 주 하원 선거구 단위로 집계해 카운티 지도를 그리지 않는다. 코네티컷은 카운티 대신 계획 권역으로 그린다. |
 | 예측 | Wikipedia 2026 선거 예측 표 (Cook, Inside Elections, Sabato, DDHQ, RCP, Fox) | 선거 직전 최종 평가만 있고 등급 변경 이력은 없다. 하원은 경합 목록에 없는 선거구를 "모든 기관 안정권"으로 간주한다(표 머리말 기준). |
-| 경계 | Census 119대 지도(cb_2024, 1:500k) + 2026 TIGER/Line 120대 경계, 카운티는 us-atlas(Census 1:10m) | 재조정 주만 TIGER로 교체하고 1:500k 육지 윤곽으로 잘라 쓴다. |
+| 경계 | Census 119대 지도(cb_2024, 1:500k) + 2026 TIGER/Line 120대 경계, 카운티는 Census cartographic 1:5m(cb_2024_us_county) | 재조정 주만 TIGER로 교체하고 1:500k 육지 윤곽으로 잘라 쓴다. |
 | 후보 사진 | [unitedstates/images](https://github.com/unitedstates/images) 연방 의회 공식 사진 | 미 정부 저작물(퍼블릭 도메인). 현직 연방 의원인 후보만 있고, 나머지는 이니셜. 같은 주·같은 성·같은 이름(애칭 포함)일 때만 연결한다. |
 | 선거 전 현황 | unitedstates/congress-legislators, 공개 정보 정리 | 현직 출마 여부는 결과 데이터의 투표용지 현직 표시를 따른다. |
 
@@ -58,7 +58,8 @@ AL·CA·FL·LA·NC·OH·TN·TX·UT. 이 주들의 선거구는 같은 번호의 
 curl -LO https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_cd119_500k.zip
 for f in 01 06 12 22 37 39 47 48 49; do curl -LO https://www2.census.gov/geo/tiger/TIGER2026/CD/tl_2026_${f}_cd120.zip; done
 npm run build:geo -- cb_2024_us_cd119_500k.zip tl_2026_*_cd120.zip
-npm run build:counties
+curl -LO https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_county_5m.zip
+npm run build:counties -- cb_2024_us_county_5m.zip
 
 # 현직 의원
 curl -LO https://unitedstates.github.io/congress-legislators/legislators-current.json

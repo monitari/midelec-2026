@@ -710,3 +710,16 @@ body { overflow-x: clip; }
 .share-btn.done { color: var(--d-ink); }
 .share-tip { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--surface); background: var(--g900); border-radius: 6px; padding: 0; pointer-events: none; }
 .share-btn.done .share-tip { padding: 3px 7px; animation: fade-in .15s ease both; }
+
+/* 새 경계 추정 교체 카드 */
+.flip-card.estimated { background: var(--g50); box-shadow: inset 0 0 0 1px var(--g200); }
+.est-tag { font-style: normal; font-size: 10px; font-weight: 700; color: var(--g600); background: var(--g100); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; }
+
+/* 개표 흐름: 정당 교체 발표 시점 */
+.tl-flip { fill: var(--surface); stroke-width: 2; }
+.tl-flip-key { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--g500); box-sizing: border-box; }
+
+/* 키보드로 지도에 들어왔을 때 */
+.map-svg:focus { outline: none; }
+.map-svg:focus-visible { box-shadow: inset 0 0 0 2px var(--g900); border-radius: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

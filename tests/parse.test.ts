@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error 스크립트용 JS 모듈 (타입 선언 없음)
-import { EXPECTED_RACES, countyResults, matchMember, parsePredictions, parseResult, validateData } from '../scripts/lib/parse.mjs';
+import { EXPECTED_RACES, countyResults, matchMember, notionalHolder, parsePredictions, parseResult, validateData } from '../scripts/lib/parse.mjs';
 
 const WIKI = `
 {| class="wikitable"
@@ -154,5 +154,19 @@ describe('validateData (저장 전 검사)', () => {
   });
   it('승자 발표가 한꺼번에 크게 줄면 거부', () => {
     expect(validateData(make(EXPECTED_RACES, 'counting'), make(EXPECTED_RACES)).join()).toContain('줄었음');
+  });
+});
+
+describe('notionalHolder (새 경계 추정 보유)', () => {
+  it('출마한 현직이 한 정당뿐이면 그 정당', () => {
+    expect(notionalHolder(['R'], 12)).toEqual({ party: 'R', basis: 'incumbent' });
+    expect(notionalHolder(['D', 'D'], -3)).toEqual({ party: 'D', basis: 'incumbent' });
+  });
+  it('현직이 없거나 양당 현직이 맞붙으면 2024 대선 승자', () => {
+    expect(notionalHolder([], -4.2)).toEqual({ party: 'R', basis: 'pres2024' });
+    expect(notionalHolder(['D', 'R'], 1)).toEqual({ party: 'D', basis: 'pres2024' });
+  });
+  it('근거가 없으면 정하지 않는다', () => {
+    expect(notionalHolder([], undefined)).toBeUndefined();
   });
 });

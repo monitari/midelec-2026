@@ -3,7 +3,7 @@ import type { Chamber, ElectionData, Mode, Race, Selection, Unit } from './lib/t
 import { loadElectionData } from './data';
 import { loadGeo, type GeoData } from './lib/geo';
 import {
-  BASES, CHAMBER_LABEL, categoryOrder, classify, isDecided, marginPts, matchesFilters, outcome, outcomeText, raceTitle,
+  BASES, CHAMBER_LABEL, categoryOrder, classify, estimatedFlip, isDecided, marginPts, matchesFilters, outcome, outcomeText, raceTitle,
   type Basis, type Category, type ClassifyCtx, type FilterKey,
 } from './lib/classify';
 import { summarize } from './lib/tally';
@@ -468,6 +468,7 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
             <div className="card-head">
               <h2>주인이 바뀐 곳</h2>
               <span className="count">{listRaces.filter((r) => outcome(r) === 'flip').length}</span>
+              {listRaces.some(estimatedFlip) && <span className="muted">새 경계 추정 교체 {listRaces.filter(estimatedFlip).length}곳 별도</span>}
             </div>
             <ErrorBoundary name="주인이 바뀐 곳" resetKey={data.meta.fetchedAt}><Flips races={listRaces} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} /></ErrorBoundary>
           </section>

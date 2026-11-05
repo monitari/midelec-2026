@@ -75,6 +75,7 @@ export function CallTimeline({ tl, title }: { tl: Timeline; title: string }) {
         <span className="tl-legend">
           <span><i style={{ background: PALETTE.D }} />민주{tl.caucusIncluded ? ' (협력 무소속 포함)' : ''}</span>
           <span><i style={{ background: PALETTE.R }} />공화</span>
+          {tl.flips.length > 0 && <span><b className="tl-flip-key" />정당 교체</span>}
         </span>
       </figcaption>
       <div ref={ref} className="tl-plot">
@@ -110,6 +111,11 @@ export function CallTimeline({ tl, title }: { tl: Timeline; title: string }) {
             )}
             <path className="tl-line" d={step('r')} stroke={PALETTE.R} pathLength={1} />
             <path className="tl-line" d={step('d')} stroke={PALETTE.D} pathLength={1} />
+            {tl.flips.map((f) => (
+              <circle key={`${f.t}-${f.title}`} className="tl-flip" cx={x(f.t)} cy={y(f.seats)} r={3.5} stroke={PALETTE[f.party]}>
+                <title>{`${f.title} · ${PARTY_NAME[f.party]} 획득 · ${fmtTime(new Date(f.t).toISOString())}`}</title>
+              </circle>
+            ))}
             {clinch && (
               <g className="tl-clinch">
                 <line x1={x(Date.parse(clinch.at))} x2={x(Date.parse(clinch.at))} y1={PAD.top} y2={PAD.top + ih} />

@@ -1,7 +1,7 @@
 import type { Chamber, ElectionData, Mode, Party, Race } from './types';
 import { PALETTE, RATING_COLOR, partyLight, type Fill } from './colors';
 import { RATING_LABEL, RATING_ORDER, ratingSide } from './ratings';
-import { currentForecast, isDecided, outcome, raceTitle, verdict } from './classify';
+import { currentForecast, estimatedFlip, frozenForecast, isDecided, outcome, raceTitle, verdict } from './classify';
 
 export interface Segment {
   key: string;
@@ -172,6 +172,9 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
   let undecided = 0;
   let unclassified = 0;
   const verdicts = { expected: 0, tossup: 0, upset: 0 };
+  // 하원 경합 목록에 없어 '안정권'으로 간주한 선거구는 실제 평가가 아니므로 예측 적중 통계에서 뺀다
+  let impliedOnly = 0;
+  let estimated = 0;
   for (const r of races) {
     if (!isDecided(r)) {
       undecided++;
@@ -181,7 +184,14 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
     won[w]++;
     const o = outcome(r);
     if (o === 'flip') flips++;
-    else if (o === 'unclassified') unclassified++;
+    else if (o === 'unclassified') {
+      unclassified++;
+      if (estimatedFlip(r)) estimated++;
+    }
+    if (frozenForecast(r, source, data.meta.forecastFreezeAt)?.implied) {
+      impliedOnly++;
+      continue;
+    }
     const v = verdict(r, source, data.meta.forecastFreezeAt);
     if (v === 'expected' || v === 'tossup' || v === 'upset') verdicts[v]++;
   }
@@ -196,9 +206,10 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
           { label: `예상대로 ${verdicts.expected}` },
           { label: `경합지 ${verdicts.tossup}` },
           { label: `예상 밖 ${verdicts.upset}`, tone: 'neutral' },
+          ...(impliedOnly ? [{ label: `평가 목록 외 ${impliedOnly}곳 제외` }] : []),
         ]
       : [{ label: `정당 교체 ${flips}` }];
-  if (unclassified) chips.push({ label: `새 경계 ${unclassified}곳 미판정` });
+  if (unclassified) chips.push({ label: `새 경계 ${unclassified}곳 미판정${estimated ? ` · 추정 교체 ${estimated}` : ''}` });
   return {
     left: {
       label: '민주당',

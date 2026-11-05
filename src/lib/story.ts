@@ -1,6 +1,6 @@
 // 화면 위쪽의 한 줄 요약과 개표 흐름(승자 발표 누적) 계산
 import type { Chamber, ElectionData, Race } from './types';
-import { CHAMBER_LABEL, isDecided, outcome } from './classify';
+import { CHAMBER_LABEL, isDecided, outcome, raceTitle } from './classify';
 import { PARTY_NAME } from './colors';
 import { controlOf, holdovers, type Control } from './tally';
 
@@ -52,6 +52,8 @@ export interface Timeline {
   control?: Control;
   /** 상원: 민주 쪽 선에 민주 협력 무소속을 포함했는지 */
   caucusIncluded: number;
+  /** 정당이 바뀐 자리가 발표된 순간 (그 정당 선 위에 표시) */
+  flips: { t: number; party: 'D' | 'R'; seats: number; title: string }[];
 }
 
 /**
@@ -75,11 +77,15 @@ export function timeline(data: ElectionData, chamber: Chamber): Timeline {
   // 첫 투표소 마감(미 동부 오후 6시) 무렵부터
   const start = Math.min(Date.parse(`${data.meta.electionDay}T23:00:00Z`), ...called.map((x) => Date.parse(x.result.calledAt)));
   const points: TimelinePoint[] = [{ t: start, d, r }];
+  const flips: Timeline['flips'] = [];
   for (const x of called) {
-    if (x.result.winner === 'D') d++;
-    else if (x.result.winner === 'R') r++;
+    const w = x.result.winner;
+    if (w === 'D') d++;
+    else if (w === 'R') r++;
     else continue;
-    points.push({ t: Date.parse(x.result.calledAt), d, r });
+    const t = Date.parse(x.result.calledAt);
+    points.push({ t, d, r });
+    if (outcome(x) === 'flip') flips.push({ t, party: w, seats: w === 'D' ? d : r, title: raceTitle(x) });
   }
   const end = Math.max(Date.parse(data.meta.generatedAt), points.at(-1)!.t);
   points.push({ t: end, d, r });
@@ -90,5 +96,6 @@ export function timeline(data: ElectionData, chamber: Chamber): Timeline {
     need: chamber === 'senate' ? { D: 51, R: 50 } : chamber === 'house' ? { D: 218, R: 218 } : undefined,
     control: controlOf(data, chamber, races, hold),
     caucusIncluded: caucus,
+    flips,
   };
 }

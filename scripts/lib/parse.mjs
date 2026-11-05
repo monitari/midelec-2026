@@ -200,6 +200,19 @@ export function matchMember(meta, state, roster) {
 
 export const photoUrl = (bioguide) => `https://unitedstates.github.io/images/congress/225x275/${bioguide}.jpg`;
 
+/**
+ * 새 경계 선거구의 '추정' 보유 정당. 같은 번호의 이전 선거구와 비교하지 않기 위한 대안이며, 공식 정당 교체 수에는 넣지 않는다.
+ *   1) 이 선거구에 출마한 현직이 한 정당뿐이면 그 정당 (현직의 지역구가 옮겨 온 것으로 본다)
+ *   2) 아니면 새 경계 기준 2024 대선 승자
+ * @returns {{ party: 'D'|'R'|'I', basis: 'incumbent'|'pres2024' } | undefined}
+ */
+export function notionalHolder(incumbentParties, pres2024Margin) {
+  const parties = [...new Set(incumbentParties.filter((p) => p === 'D' || p === 'R' || p === 'I'))];
+  if (parties.length === 1) return { party: parties[0], basis: 'incumbent' };
+  if (pres2024Margin == null || pres2024Margin === 0) return undefined;
+  return { party: pres2024Margin > 0 ? 'D' : 'R', basis: 'pres2024' };
+}
+
 // ── 저장 전 검사 ─────────────────────────────────────────────
 
 export const EXPECTED_RACES = { senate: 35, house: 435, governor: 36 };

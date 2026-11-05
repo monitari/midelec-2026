@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Chamber, ElectionData, Mode, Race } from '../lib/types';
 import {
-  CHAMBER_LABEL, STATUS_LABEL, currentForecast, swingOf, frozenForecast, isDecided, leaderParty, marginPts, outcome,
+  CHAMBER_LABEL, NOTIONAL_BASIS, STATUS_LABEL, currentForecast, estimatedFlip, swingOf, frozenForecast, isDecided, leaderParty, marginPts, outcome,
   outcomeText, previousForecast, priorParty, raceCode, raceTitle, verdict, voteShares,
 } from '../lib/classify';
 import { PALETTE, PARTY_NAME, PARTY_SHORT, RATING_COLOR, partyColor } from '../lib/colors';
@@ -111,7 +111,12 @@ function Result({ race }: { race: Race }) {
             <strong>{o === 'flip' ? `${PARTY_NAME[res.winner!]} 획득` : outcomeText(race)}</strong>
             {res.winnerName && <span>{res.winnerName} 당선{res.uncontested ? ' (무투표)' : ''}</span>}
             {o === 'flip' && <span>{PARTY_SHORT[priorParty(race)!]} → {PARTY_SHORT[res.winner!]} 정당 교체</span>}
-            {o === 'unclassified' && <span>새 경계 · 교체 판정 없음</span>}
+            {o === 'unclassified' && (
+              <span>
+                새 경계 · 공식 교체 판정 없음
+                {race.notional && <> · 추정 보유 {PARTY_SHORT[race.notional.party]} ({NOTIONAL_BASIS[race.notional.basis]}){estimatedFlip(race) ? ' → 추정 교체' : ''}</>}
+              </span>
+            )}
           </>
         ) : (
           <>
@@ -241,6 +246,12 @@ function Baseline({ race, data }: Common & { race: Race }) {
         </dd>
         <dt>이번 구도</dt>
         <dd>{race.seatStatus === 'vacant' ? '공석 선거' : inc?.running ? '현직 출마' : race.boundaryChanged && !inc ? '새 경계 · 출마한 현직 없음' : '현직 불출마로 열린 선거'}</dd>
+        {race.notional && (
+          <>
+            <dt>추정 보유</dt>
+            <dd>{PARTY_NAME[race.notional.party]} <small>({NOTIONAL_BASIS[race.notional.basis]})</small></dd>
+          </>
+        )}
         <dt>기존 보유</dt>
         <dd>{race.heldBy ? PARTY_NAME[race.heldBy] : '없음 (새 경계)'}</dd>
         {race.pres2024 != null && (

@@ -49,6 +49,25 @@ test.describe('데스크톱', () => {
     await expect(page.locator('figure.metro')).toHaveCount(3);
   });
 
+  // 회귀: 틀이 가장 작은 시카고권은 최대로 확대해도 접히지 않았다
+  test('시카고권도 본 지도에서 보면 접힌다', async ({ page }) => {
+    await open(page, 'c=house&m=result&u=district');
+    await page.getByRole('button', { name: '본 지도에서 시카고권 보기' }).click();
+    await expect(page.locator('.metro.collapsed')).toHaveCount(1);
+    await expect(page.locator('.metro.collapsed')).toContainText('시카고권');
+  });
+
+  test('키보드로 지도를 다니고 Enter 로 고른다', async ({ page }) => {
+    await open(page, 'c=senate&m=result');
+    await page.locator('.map-svg').focus();
+    await expect(page.locator('.tooltip')).toBeVisible();
+    const first = await page.locator('.tooltip b').textContent();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.tooltip b')).not.toHaveText(first ?? '');
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/sel=/);
+  });
+
   test('링크 복사', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await open(page, 'c=senate&m=result&sel=S-GA');

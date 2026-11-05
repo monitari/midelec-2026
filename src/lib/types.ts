@@ -82,6 +82,11 @@ export interface Race {
   heldBy: Party | null;
   /** 이번 선거에서 경계가 바뀐 선거구 */
   boundaryChanged?: boolean;
+  /**
+   * 새 경계 선거구의 추정 보유 정당 (공식 교체 판정에는 쓰지 않음).
+   * incumbent = 이 선거구에 출마한 현직의 정당, pres2024 = 새 경계 기준 2024 대선 승자
+   */
+  notional?: { party: Party; basis: 'incumbent' | 'pres2024' };
   /** 현재(이번 선거) 경계 기준 2024 대선 득표율 차(민주 − 공화, %p) */
   pres2024?: number;
   /** sourceId → 평가 이력. 키가 없으면 해당 출처의 예측 없음 */

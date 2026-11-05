@@ -6,7 +6,7 @@ import { geoPath } from 'd3-geo';
 import type { Unit } from '../lib/types';
 import type { Category } from '../lib/classify';
 import { PALETTE, fillRef, type Fill } from '../lib/colors';
-import { MAP_H, MAP_W, METROS, buildMetro, mainProjection, metroCovered, metroFrame, type GeoData, type MetroDef, type Region } from '../lib/geo';
+import { MAP_H, MAP_W, MAX_ZOOM, METROS, buildMetro, mainProjection, metroCovered, metroFrame, nearestInDirection, type GeoData, type MetroDef, type Region } from '../lib/geo';
 import { Segmented, prefersReducedMotion } from './ui';
 
 export interface Glyph {
@@ -109,7 +109,7 @@ export function MapView(props: Props) {
   useEffect(() => {
     const svg = svgRef.current!;
     const z = zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 14])
+      .scaleExtent([1, MAX_ZOOM])
       .translateExtent([[0, 0], [MAP_W, MAP_H]])
       // 페이지 스크롤을 빼앗지 않도록 휠 확대는 Ctrl/⌘ 와 함께
       .filter((e: Event) => (e.type === 'wheel' ? (e as WheelEvent).ctrlKey || (e as WheelEvent).metaKey : !(e as MouseEvent).button))
@@ -133,7 +133,7 @@ export function MapView(props: Props) {
   }, [unit]);
 
   const zoomBy = (f: number) => svgRef.current && zoomRef.current && select(svgRef.current).transition().duration(ms(250)).call(zoomRef.current.scaleBy, f);
-  const zoomTo = useCallback((box: [number, number, number, number], fill = 0.85, maxK = 14) => {
+  const zoomTo = useCallback((box: [number, number, number, number], fill = 0.85, maxK = MAX_ZOOM) => {
     if (!svgRef.current || !zoomRef.current) return;
     const [x, y, w, h] = box;
     const kk = Math.max(1, Math.min(maxK, fill / Math.max(w / MAP_W, h / MAP_H)));
@@ -170,7 +170,39 @@ export function MapView(props: Props) {
     if (key) onSelect(key);
   };
 
-  const hoverRegion = hover ? byKey.get(hover.key) ?? stateByKey.get(hover.key) : null;
+  // 키보드: 지도에 포커스가 있을 때 화살표로 지역 사이를 다니고 Enter 로 고른다
+  const [kbKey, setKbKey] = useState<string | null>(null);
+  const kbRegion = kbKey ? byKey.get(kbKey) : null;
+  const toClient = (pt: [number, number]) => {
+    const m = gRef.current?.getScreenCTM();
+    if (!m) return { x: 0, y: 0 };
+    return { x: m.a * pt[0] + m.c * pt[1] + m.e, y: m.b * pt[0] + m.d * pt[1] + m.f };
+  };
+  const startKb = () => {
+    if (kbKey && byKey.has(kbKey)) return;
+    // 고른 지역이 있으면 거기서, 없으면 지도 한가운데에서 가장 가까운 지역부터
+    const center: [number, number] = [MAP_W / 2, MAP_H / 2];
+    const start = (selectedKey ? byKey.get(selectedKey) : undefined)
+      ?? regions.reduce((a, b) => (Math.hypot(b.anchor[0] - center[0], b.anchor[1] - center[1]) < Math.hypot(a.anchor[0] - center[0], a.anchor[1] - center[1]) ? b : a));
+    setKbKey(start.key);
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const dirs = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' } as const;
+    if (e.key in dirs && kbRegion) {
+      e.preventDefault();
+      const next = nearestInDirection(regions, kbRegion.anchor, dirs[e.key as keyof typeof dirs], kbRegion.key);
+      if (next) setKbKey(next);
+    } else if ((e.key === 'Enter' || e.key === ' ') && kbKey) {
+      e.preventDefault();
+      onSelect(kbKey);
+    } else if (e.key === 'Escape') {
+      (e.currentTarget as SVGSVGElement).blur();
+    }
+  };
+  // 키보드로 고른 지역의 안내는 마우스 안내와 같은 말풍선을 쓴다
+  const kbTip = kbRegion ? { key: kbRegion.key, ...toClient(kbRegion.anchor) } : null;
+
+  const hoverRegion = hover ? byKey.get(hover.key) ?? stateByKey.get(hover.key) : kbRegion ?? null;
   const selectedRegion = selectedKey ? byKey.get(selectedKey) : null;
   const selectedStateRegion = selectedState ? stateByKey.get(selectedState) : null;
   const labelsOn = unit === 'district' && k >= 3;
@@ -182,8 +214,13 @@ export function MapView(props: Props) {
           ref={svgRef}
           className="map-svg"
           viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-          role="img"
-          aria-label="미국 지도"
+          role="application"
+          aria-roledescription="지도"
+          aria-label="미국 지도. 화살표로 지역 이동, Enter로 선택"
+          tabIndex={0}
+          onFocus={startKb}
+          onBlur={() => setKbKey(null)}
+          onKeyDown={onKeyDown}
           onPointerMove={onMove}
           onPointerLeave={() => setHover(null)}
           onClick={onClick}
@@ -233,6 +270,8 @@ export function MapView(props: Props) {
           {k > 1 && <button className="zoom-reset" onClick={reset}>전국</button>}
         </div>
         {!isMobile && wheelHint && <div className="map-hint">Ctrl + 스크롤로 확대</div>}
+        {/* 화면 낭독기에 키보드로 고른 지역을 알린다 */}
+        <div className="sr-only" aria-live="polite">{kbKey ? describe(kbKey) : null}</div>
       </div>
 
       {props.footer}
@@ -290,7 +329,7 @@ export function MapView(props: Props) {
         </div>
       )}
 
-      {hover && <div className="tooltip" style={{ left: hover.x, top: hover.y }}>{describe(hover.key)}</div>}
+      {(hover ?? kbTip) && <div className="tooltip" style={{ left: (hover ?? kbTip)!.x, top: (hover ?? kbTip)!.y }}>{describe((hover ?? kbTip)!.key)}</div>}
     </div>
   );
 }
