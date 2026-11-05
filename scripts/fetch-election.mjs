@@ -8,11 +8,17 @@
 //   --cache              내려받은 원본을 저장하고, 이미 있으면 다시 받지 않는다 (재실행·디버깅용)
 //   --every              그 간격(분)으로 계속 다시 받는다 (개표 중 켜 두기)
 //   --refresh-forecasts  예측 스냅숏을 Wikipedia 에서 새로 만든다. 선거 후 편집이 섞일 수 있으니 주의
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  SOURCES, countyResults, incumbentsIn, matchMember, nameOf, pad, parsePredictions, parseResult, partyOf, photoUrl, pres2024,
+  SOURCES, countyResults, incumbentsIn, matchMember, nameOf, pad, parsePredictions, parseResult, partyOf, photoUrl, pres2024, validateData,
 } from './lib/parse.mjs';
+
+/** 임시 파일에 쓴 뒤 바꿔치기 — 쓰는 도중 화면이 반쯤 쓴 파일을 읽지 않도록 */
+function writeAtomic(file, text) {
+  writeFileSync(`${file}.tmp`, text);
+  renameSync(`${file}.tmp`, file);
+}
 
 const args = process.argv.slice(2);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
@@ -261,9 +267,16 @@ async function run() {
     redistrictedStates: baseline.redistrictedStates,
   };
 
+  // 이상하면 저장하지 않고 직전 파일을 그대로 둔다
+  let prev = null;
+  try { prev = existsSync(OUT) ? readJson(OUT) : null; } catch { /* 직전 파일이 깨졌으면 비교 없이 */ }
+  const problems = validateData(data, prev);
+  if (problems.length) {
+    throw new Error(['데이터 검사 실패 — 저장하지 않고 직전 파일을 유지합니다:', ...problems.slice(0, 10)].join('\n  '));
+  }
   mkdirSync('public/data', { recursive: true });
-  writeFileSync(OUT, JSON.stringify(data));
-  writeFileSync(COUNTIES_OUT, JSON.stringify(counties));
+  writeAtomic(OUT, JSON.stringify(data));
+  writeAtomic(COUNTIES_OUT, JSON.stringify(counties));
   const by = (c) => races.filter((r) => r.chamber === c);
   const photos = races.flatMap((r) => r.result.candidates).filter((c) => c.photo).length;
   const called = races.filter((r) => r.result.status === 'called' || r.result.status === 'certified').length;
@@ -280,5 +293,10 @@ if (everyMin > 0) {
   console.log(`${everyMin}분마다 다시 받습니다. 끝내려면 Ctrl+C`);
   loop();
 } else {
-  await run();
+  try {
+    await run();
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 }

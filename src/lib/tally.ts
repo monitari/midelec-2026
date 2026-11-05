@@ -21,6 +21,8 @@ export interface Summary {
   chips: { label: string; tone?: 'D' | 'R' | 'neutral' }[];
   /** 결과 기준 다수당 판정 (상원·하원) */
   control?: Control;
+  /** 하원 전국 득표 (지금까지 개표된 표, 무투표 지역 제외) */
+  popular?: { D: number; R: number; total: number };
 }
 
 export type Control =
@@ -55,6 +57,18 @@ function before(data: ElectionData, chamber: Chamber): Record<Party, number> {
  * 다수당 판정: 승자 발표된 선거만 세어, 한 정당이 과반선을 넘긴 순간(그 선거의 발표 시각)을 찾는다.
  * 상원은 무소속의 연대(caucus)를 포함하고, 부통령이 공화당이라 공화는 50석으로 충분하다.
  */
+export function popularVote(races: Race[]) {
+  const out = { D: 0, R: 0, total: 0 };
+  for (const r of races) {
+    for (const c of r.result.candidates) {
+      out.total += c.votes;
+      if (c.party === 'D') out.D += c.votes;
+      else if (c.party === 'R') out.R += c.votes;
+    }
+  }
+  return out;
+}
+
 export function controlOf(data: ElectionData, chamber: Chamber, races: Race[], hold: Record<Party, number>): Control | undefined {
   if (chamber === 'governor') return undefined;
   const need = chamber === 'senate' ? { D: 51, R: 50 } : { D: 218, R: 218 };
@@ -193,6 +207,7 @@ export function summarize(data: ElectionData, chamber: Chamber, races: Race[], m
     },
     right: { label: '공화당', value: rr, sub: `선거 전 ${prev.R}` },
     control: controlOf(data, chamber, races, hold),
+    popular: chamber === 'house' ? popularVote(races) : undefined,
     center: { label: '미결정', value: undecided },
     total,
     majority,

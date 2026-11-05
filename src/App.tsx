@@ -17,11 +17,12 @@ import { KeyRaces, RaceTable, RecentCalls } from './components/RaceLists';
 import { PatternDefs, Segmented, Select, Toggle } from './components/ui';
 import { ChamberSwitch, Logo, Story } from './components/Overview';
 import { SearchBox } from './components/SearchBox';
-import { StatusBadge, ThemeToggle } from './components/Chrome';
+import { ShareButton, StatusBadge, ThemeToggle } from './components/Chrome';
 import { CallTimeline } from './components/CallTimeline';
 import { Flips } from './components/Flips';
 import { timeline } from './lib/story';
 import { BottomSheet } from './components/BottomSheet';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { BootSkeleton, Toast } from './components/Feedback';
 
 const MODES: { id: Mode; label: string }[] = [
@@ -371,6 +372,7 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
           <div className="topbar-tools">
             <SearchBox races={data.races} onPick={pickRace} />
             <StatusBadge meta={data.meta} />
+            <ShareButton />
             <ThemeToggle />
           </div>
         </div>
@@ -415,6 +417,7 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
         {/* 지도가 주인공: 넓게 쓰고, 오른쪽 사이드바가 요약 → 상세로 바뀐다 */}
         <div className="stage">
           <section className="map-card">
+            <ErrorBoundary name="지도" resetKey={`${data.meta.fetchedAt}|${chamber}|${mode}|${unit}`}>
             {geo ? (
               <MapView
                 geo={geo}
@@ -439,9 +442,11 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
             ) : (
               <div className="map-loading">{geoError ? '지도 경계 자료를 불러오지 못했어요.' : ''}</div>
             )}
+            </ErrorBoundary>
           </section>
 
           <aside className="side">
+            <ErrorBoundary name="요약과 상세" resetKey={`${data.meta.fetchedAt}|${chamber}|${mode}|${detailKey}`}>
             {!isMobile && !selection && <div className="side-card story-card"><Story data={data} /></div>}
             <div className="side-card">
               <SeatSummary s={summary} chamberLabel={CHAMBER_LABEL[chamber]} compact={!isMobile && !!selection} />
@@ -454,6 +459,7 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
                 <div className="side-card side-detail">{picksPanel}</div>
               </>
             )}
+            </ErrorBoundary>
           </aside>
         </div>
 
@@ -463,7 +469,7 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
               <h2>주인이 바뀐 곳</h2>
               <span className="count">{listRaces.filter((r) => outcome(r) === 'flip').length}</span>
             </div>
-            <Flips races={listRaces} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} />
+            <ErrorBoundary name="주인이 바뀐 곳" resetKey={data.meta.fetchedAt}><Flips races={listRaces} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} /></ErrorBoundary>
           </section>
         )}
 
@@ -472,17 +478,17 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
             <h2>주요 승부처</h2>
             <span className="pill">{data.forecastSources.find((s) => s.id === source)!.name}</span>
           </div>
-          <KeyRaces races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} />
+          <ErrorBoundary name="주요 승부처" resetKey={data.meta.fetchedAt}><KeyRaces races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} /></ErrorBoundary>
         </section>
 
         <div className="split">
           <section className="card">
             <div className="card-head"><h2>최근 결과 발표</h2></div>
-            <RecentCalls races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} fresh={fresh} />
+            <ErrorBoundary name="최근 결과" resetKey={data.meta.fetchedAt}><RecentCalls races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} fresh={fresh} /></ErrorBoundary>
           </section>
           <section className="card">
             <div className="card-head"><h2>전체 선거</h2></div>
-            <RaceTable races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} fresh={fresh} />
+            <ErrorBoundary name="전체 선거 목록" resetKey={data.meta.fetchedAt}><RaceTable races={listRaces} source={source} freezeAt={freezeAt} onSelect={selectFromList} selectedId={selectedRace?.id ?? null} fresh={fresh} /></ErrorBoundary>
           </section>
         </div>
 
@@ -499,7 +505,11 @@ function Dashboard({ data, fresh }: { data: ElectionData; fresh: Set<string> }) 
       </main>
 
       {/* 모바일: 지도를 가리지 않는 하단 패널. 다른 지역을 눌러도 계속 열려 있다 */}
-      {isMobile && selection && <BottomSheet onClose={() => setSelection(null)}>{animatedDetail}</BottomSheet>}
+      {isMobile && selection && (
+        <BottomSheet onClose={() => setSelection(null)}>
+          <ErrorBoundary name="상세" resetKey={detailKey}>{animatedDetail}</ErrorBoundary>
+        </BottomSheet>
+      )}
     </div>
   );
 }

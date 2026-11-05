@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error 스크립트용 JS 모듈 (타입 선언 없음)
-import { countyResults, matchMember, parsePredictions, parseResult } from '../scripts/lib/parse.mjs';
+import { EXPECTED_RACES, countyResults, matchMember, parsePredictions, parseResult, validateData } from '../scripts/lib/parse.mjs';
 
 const WIKI = `
 {| class="wikitable"
@@ -129,5 +129,30 @@ describe('countyResults', () => {
       ],
     });
     expect(out).toEqual({ 13001: { e: 99, t: 10, c: [['R', 6], ['D', 3]] } });
+  });
+});
+
+describe('validateData (저장 전 검사)', () => {
+  const ok = (status = 'called') => ({ status, winner: status === 'called' ? 'D' : undefined, candidates: [{ votes: 10 }] });
+  const make = (n: Record<string, number>, status?: string) => ({
+    races: Object.entries(n).flatMap(([chamber, count]) =>
+      Array.from({ length: count }, (_, i) => ({ id: `${chamber}-${i}`, chamber, result: ok(status) }))),
+  });
+
+  it('정상 데이터는 통과', () => {
+    expect(validateData(make(EXPECTED_RACES))).toEqual([]);
+  });
+  it('선거 수가 모자라면 (피드 일부만 받음) 거부', () => {
+    expect(validateData(make({ ...EXPECTED_RACES, house: 200 })).join()).toContain('house 선거 수 200');
+  });
+  it('승자 발표인데 승자가 없거나 득표가 이상하면 거부', () => {
+    const d = make(EXPECTED_RACES);
+    d.races[0].result.winner = undefined;
+    d.races[1].result.candidates = [{ votes: Number.NaN }];
+    const problems = validateData(d);
+    expect(problems).toHaveLength(2);
+  });
+  it('승자 발표가 한꺼번에 크게 줄면 거부', () => {
+    expect(validateData(make(EXPECTED_RACES, 'counting'), make(EXPECTED_RACES)).join()).toContain('줄었음');
   });
 });

@@ -199,3 +199,40 @@ export function matchMember(meta, state, roster) {
 }
 
 export const photoUrl = (bioguide) => `https://unitedstates.github.io/images/congress/225x275/${bioguide}.jpg`;
+
+// ── 저장 전 검사 ─────────────────────────────────────────────
+
+export const EXPECTED_RACES = { senate: 35, house: 435, governor: 36 };
+const STATUSES = new Set(['pending', 'counting', 'runoff', 'called', 'certified']);
+const decided = (r) => r.result.status === 'called' || r.result.status === 'certified';
+
+/**
+ * 새로 만든 데이터가 화면에 내보내도 될 만한지. 문제 목록을 돌려주고, 비어 있으면 통과.
+ * 공급원 형식이 바뀌거나 일부만 내려왔을 때 깨진 파일로 덮어쓰지 않기 위한 것.
+ * @param prev 직전에 저장한 데이터 (있으면 승자 발표 수가 크게 줄었는지도 본다)
+ */
+export function validateData(data, prev) {
+  const problems = [];
+  const races = data?.races ?? [];
+  for (const [chamber, n] of Object.entries(EXPECTED_RACES)) {
+    const got = races.filter((r) => r.chamber === chamber).length;
+    if (got !== n) problems.push(`${chamber} 선거 수 ${got} (기대 ${n})`);
+  }
+  const ids = new Set();
+  for (const r of races) {
+    if (ids.has(r.id)) problems.push(`${r.id} 중복`);
+    ids.add(r.id);
+    const res = r.result;
+    if (!res || !STATUSES.has(res.status)) { problems.push(`${r.id} 상태 값 이상: ${res?.status}`); continue; }
+    if (!Array.isArray(res.candidates) || !res.candidates.length) problems.push(`${r.id} 후보 없음`);
+    else if (res.candidates.some((c) => !Number.isFinite(c.votes) || c.votes < 0)) problems.push(`${r.id} 득표 값 이상`);
+    if (decided(r) && !res.winner) problems.push(`${r.id} 승자 발표인데 승자 없음`);
+  }
+  // 승자 발표는 거의 되돌려지지 않는다. 한꺼번에 많이 줄면 피드가 일부만 내려온 것으로 본다
+  if (prev?.races) {
+    const before = prev.races.filter(decided).length;
+    const now = races.filter(decided).length;
+    if (before - now > 5) problems.push(`승자 발표가 ${before} → ${now} 로 줄었음`);
+  }
+  return problems;
+}

@@ -11,9 +11,12 @@ npm run dev
 개표가 진행되는 동안에는 `npm run watch:data`(5분마다 다시 받기)를 켜 두면 화면이 1분 안에 따라 갱신된다. 수집이 15분 넘게 멈추면 상단 배지가 경고로 바뀐다.
 
 ```bash
-npm test             # 파서·정당 교체·예측 비교·다수당 판정 테스트
+npm test             # 단위 테스트 (파서·저장 전 검사·정당 교체·예측 비교·다수당 판정·확대도 접기)
+npm run test:e2e     # 실제로 눌러 보는 테스트 (설치된 Chrome 사용, 데스크톱·모바일)
 npm run build
 ```
+
+수집 스크립트는 저장 전에 데이터를 검사한다(선거 수, 상태 값, 승자 발표 수가 갑자기 줄었는지). 이상하면 저장하지 않고 직전 파일을 그대로 둔다.
 
 ## 구조
 
@@ -26,7 +29,7 @@ npm run build
 | `scripts/data/forecasts-final.json` | **선거 직전 예측을 고정한 스냅숏.** 선거 후 Wikipedia 표가 바뀌어도 '예측 ↔ 결과'가 흔들리지 않게 이 파일만 쓴다 |
 | `src/lib/classify.ts` | 모드·색상 기준별 지도 분류, 유지/교체 판정, 예측 고정 시점 비교, 2024 대선 대비 변화 |
 | `src/lib/tally.ts` · `story.ts` | 의석 집계, 다수당 판정 시점, 한 줄 요약, 개표 흐름 |
-| `tests/` | vitest |
+| `tests/` · `e2e/` | vitest 단위 테스트 · Playwright 화면 테스트 |
 
 화면 상태는 주소 해시에 반영된다 (예: `#c=house&m=result&u=district&sel=H-NY-17`). `/` 키로 검색.
 

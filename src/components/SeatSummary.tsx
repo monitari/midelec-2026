@@ -3,6 +3,26 @@ import { PALETTE } from '../lib/colors';
 import { Hemicycle } from './Hemicycle';
 import { RollingNumber } from './ui';
 
+/** 하원 전국 득표율 (개표된 표 기준) */
+function PopularVote({ p }: { p: { D: number; R: number; total: number } }) {
+  const d = (p.D / p.total) * 100;
+  const r = (p.R / p.total) * 100;
+  return (
+    <div className="popular" aria-label={`하원 전국 득표 민주 ${d.toFixed(1)}%, 공화 ${r.toFixed(1)}%`}>
+      <div className="popular-head">
+        <span><i style={{ background: PALETTE.D }} />{d.toFixed(1)}%</span>
+        <b>전국 득표</b>
+        <span>{r.toFixed(1)}%<i style={{ background: PALETTE.R }} /></span>
+      </div>
+      <div className="popular-bar" aria-hidden>
+        <i style={{ width: `${d}%`, background: PALETTE.D }} />
+        <i style={{ width: `${r}%`, background: PALETTE.R, marginLeft: 'auto' }} />
+      </div>
+      <small>개표된 표 기준 · 무투표 지역 제외</small>
+    </div>
+  );
+}
+
 export function SeatSummary({ s, chamberLabel, compact = false }: { s: Summary; chamberLabel: string; compact?: boolean }) {
   const parts = s.segments.filter((g) => g.value);
   // 지역을 고른 동안에는 상세에 자리를 내주고 한 줄로 줄어든다
@@ -54,6 +74,8 @@ export function SeatSummary({ s, chamberLabel, compact = false }: { s: Summary; 
           <span key={g.key} className="summary-key"><i style={{ background: g.fill.color }} />{g.label}</span>
         ))}
       </div>
+
+      {s.popular && s.popular.total > 0 && <PopularVote p={s.popular} />}
 
       {s.chips.length > 0 && (
         <div className="summary-chips">

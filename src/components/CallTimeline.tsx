@@ -6,6 +6,13 @@ import { fmtKst, fmtTime } from '../lib/format';
 const PAD = { top: 16, right: 64, bottom: 26, left: 34 };
 const HEIGHT = 220;
 const HOUR = 3600e3;
+const dayHour = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: 'numeric' });
+/** 하루를 넘기면 날짜를 붙인다 (11/5 오전 3시) */
+function tickLabel(t: number, multiDay: boolean) {
+  if (!multiDay) return fmtTime(new Date(t).toISOString());
+  const p = Object.fromEntries(dayHour.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  return `${p.month}/${p.day} ${p.dayPeriod ?? ''} ${p.hour}시`.replace(/\s+/g, ' ');
+}
 
 function useWidth() {
   const ref = useRef<HTMLDivElement>(null);
@@ -50,8 +57,12 @@ export function CallTimeline({ tl, title }: { tl: Timeline; title: string }) {
   }).join('');
 
   // 한국시간 3시간 간격 눈금
+  // 눈금 간격은 폭에 맞춰 (라벨 하나에 약 72px). 한국시간 정각 단위(UTC+9 라 몇 시간 단위든 정각이 맞는다)
+  const span = tl.end - tl.start;
+  const stepH = [1, 2, 3, 6, 12, 24].find((h) => span / (h * HOUR) <= Math.max(2, iw / 72)) ?? 24;
+  const multiDay = span > 20 * HOUR;
   const ticks: number[] = [];
-  for (let t = Math.ceil(tl.start / (3 * HOUR)) * 3 * HOUR; t <= tl.end; t += 3 * HOUR) ticks.push(t);
+  for (let t = Math.ceil((tl.start + 9 * HOUR) / (stepH * HOUR)) * stepH * HOUR - 9 * HOUR; t <= tl.end; t += stepH * HOUR) ticks.push(t);
   const yTicks = [yMin, Math.round((yMin + yMax) / 2 / 10) * 10, yMax];
 
   const clinch = tl.control?.decided ? tl.control : null;
@@ -89,7 +100,7 @@ export function CallTimeline({ tl, title }: { tl: Timeline; title: string }) {
               </g>
             ))}
             {ticks.map((t) => (
-              <text key={t} className="tl-axis" x={x(t)} y={HEIGHT - 6} textAnchor="middle">{fmtTime(new Date(t).toISOString())}</text>
+              <text key={t} className="tl-axis" x={x(t)} y={HEIGHT - 6} textAnchor="middle">{tickLabel(t, multiDay)}</text>
             ))}
             {tl.need && (
               <g>

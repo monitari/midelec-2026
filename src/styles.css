@@ -400,7 +400,7 @@ body { overflow-x: clip; }
 }
 @keyframes sheet-in { from { transform: translateY(40px); opacity: 0; } }
 .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--g300); margin: 10px auto 0; }
-.sheet-close { position: absolute; top: 12px; right: 14px; width: 32px; height: 32px; border-radius: 50%; background: var(--g200); color: var(--g700); font-size: 13px; }
+.sheet-close { position: absolute; z-index: 2; top: 12px; right: 14px; width: 32px; height: 32px; border-radius: 50%; background: var(--g200); color: var(--g700); font-size: 13px; }
 .sheet .detail { padding-top: 4px; }
 .sheet { transition: transform .3s cubic-bezier(.2, .8, .2, 1), max-height .3s cubic-bezier(.2, .8, .2, 1); }
 .sheet.expanded { max-height: 88vh; }
@@ -691,3 +691,22 @@ body { overflow-x: clip; }
   .chip-tile { grid-template-columns: 1fr; justify-items: start; padding: 6px 8px 7px; }
   .chip-tile-nums { justify-self: start; font-size: 15px; }
 }
+
+/* 영역 하나가 실패했을 때 */
+.error-box { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 20px; border-radius: 14px; background: var(--warn-bg); color: var(--warn-ink); font-size: 13px; }
+.error-box b { font-size: 15px; }
+.error-box .chip { margin-top: 4px; }
+
+/* 하원 전국 득표 */
+.popular { margin: 14px auto 0; max-width: 360px; display: flex; flex-direction: column; gap: 5px; }
+.popular-head { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 800; color: var(--g900); }
+.popular-head span { display: inline-flex; align-items: center; gap: 5px; }
+.popular-head i { width: 8px; height: 8px; border-radius: 2px; }
+.popular-head b { font-size: 12px; font-weight: 600; color: var(--g500); }
+.popular-bar { display: flex; gap: 2px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--g100); }
+.popular-bar i { display: block; height: 100%; border-radius: 3px; transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+.popular small { text-align: center; font-size: 11px; }
+.share-btn { position: relative; width: 34px; height: 34px; border-radius: 10px; }
+.share-btn.done { color: var(--d-ink); }
+.share-tip { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--surface); background: var(--g900); border-radius: 6px; padding: 0; pointer-events: none; }
+.share-btn.done .share-tip { padding: 3px 7px; animation: fade-in .15s ease both; }

@@ -68,3 +68,34 @@ export function ThemeToggle() {
     </button>
   );
 }
+
+/** 지금 보는 화면(주소 해시에 담긴 선거 종류·모드·선택)을 공유. 휴대폰은 공유 창, 그 밖에는 링크 복사 */
+export function ShareButton() {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
+        await navigator.share({ title: document.title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* 공유 창을 닫았거나 클립보드 권한이 없으면 조용히 넘어간다 */
+    }
+  };
+  return (
+    <button className={`icon-btn share-btn${copied ? ' done' : ''}`} onClick={share} aria-label={copied ? '링크를 복사했어요' : '지금 화면 링크 복사'} title="지금 화면 링크 복사">
+      {copied ? (
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden><path d="m5 10.5 3.2 3L15 6.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      ) : (
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden>
+          <path d="M8.5 11.5a3.5 3.5 0 0 0 5 0l2.5-2.5a3.5 3.5 0 0 0-5-5l-1 1M11.5 8.5a3.5 3.5 0 0 0-5 0L4 11a3.5 3.5 0 0 0 5 5l1-1" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+      )}
+      <span className="share-tip" aria-hidden>{copied ? '복사됨' : ''}</span>
+    </button>
+  );
+}
