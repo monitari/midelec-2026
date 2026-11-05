@@ -6,7 +6,7 @@ import { geoPath } from 'd3-geo';
 import type { Unit } from '../lib/types';
 import type { Category } from '../lib/classify';
 import { PALETTE, fillRef, type Fill } from '../lib/colors';
-import { MAP_H, MAP_W, METROS, buildMetro, mainProjection, metroFrame, type GeoData, type MetroDef, type Region } from '../lib/geo';
+import { MAP_H, MAP_W, METROS, buildMetro, mainProjection, metroCovered, metroFrame, type GeoData, type MetroDef, type Region } from '../lib/geo';
 import { Segmented, prefersReducedMotion } from './ui';
 
 export interface Glyph {
@@ -85,6 +85,8 @@ export function MapView(props: Props) {
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown>>();
   const [k, setK] = useState(1);
+  // 이동량(지도 좌표). 확대도 접기에서 그 도시권이 화면 안에 있는지 판단하는 데만 쓰므로 거칠게 반올림해 둔다
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [pxPerUnit, setPxPerUnit] = useState(1);
   const [hover, setHover] = useState<{ key: string; x: number; y: number } | null>(null);
   // 넓은 화면에서는 도시권 네 곳을 모두 펼쳐 둔다
@@ -114,6 +116,9 @@ export function MapView(props: Props) {
       .on('zoom', (e) => {
         gRef.current?.setAttribute('transform', e.transform.toString());
         setK(Math.round(e.transform.k * 4) / 4);
+        const x = Math.round(e.transform.x / 8) * 8;
+        const y = Math.round(e.transform.y / 8) * 8;
+        setPan((p) => (p.x === x && p.y === y ? p : { x, y }));
       });
     select(svg).call(z).on('dblclick.zoom', null);
     zoomRef.current = z;
@@ -152,8 +157,7 @@ export function MapView(props: Props) {
   const activeMetros = showMetros
     ? METROS.filter((m) => (isMobile ? m.id === mobileMetro : enabledMetros.has(m.id)))
     : [];
-  // 본 지도에서 충분히 커진 도시권은 확대도를 접는다
-  const collapsed = new Set(activeMetros.filter((m) => metroFrames[m.id][2] * k * pxPerUnit > COLLAPSE_PX).map((m) => m.id));
+  const collapsed = new Set(activeMetros.filter((m) => metroCovered(metroFrames[m.id], { ...pan, k }, pxPerUnit, COLLAPSE_PX)).map((m) => m.id));
 
   const pick = (e: React.PointerEvent | React.MouseEvent) => (e.target as Element).closest('[data-key]')?.getAttribute('data-key') ?? null;
   const onMove = (e: React.PointerEvent) => {

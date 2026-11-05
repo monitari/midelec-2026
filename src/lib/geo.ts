@@ -121,6 +121,23 @@ export function metroFrame(m: MetroDef): [number, number, number, number] {
   return [x0, y0, x1 - x0, y1 - y0];
 }
 
+/**
+ * 본 지도에서 이 도시권이 이미 충분히 크게 보이는지 (그러면 확대도를 접는다).
+ * 화면 안에 보이는지도 함께 본다 — 배율만 보면 화면 밖 도시권까지 접혀, 틀이 가장 작은 시카고권만 남았다.
+ * @param view 본 지도의 이동·배율 (지도 좌표)
+ */
+export function metroCovered(
+  [x, y, w, h]: [number, number, number, number],
+  view: { x: number; y: number; k: number },
+  pxPerUnit: number,
+  minPx: number,
+) {
+  const sx = view.x + x * view.k;
+  const sy = view.y + y * view.k;
+  const visible = sx < MAP_W && sx + w * view.k > 0 && sy < MAP_H && sy + h * view.k > 0;
+  return visible && w * view.k * pxPerUnit > minPx;
+}
+
 export interface MetroLayer {
   width: number;
   height: number;
